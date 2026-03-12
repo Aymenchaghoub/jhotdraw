@@ -74,9 +74,5 @@ public class PertFactory extends DefaultDOMFactory {
         DOMDefaultDrawFigureFactory::writeArrowTip);
 
     register("relativeLoc", RelativeLocator.class, (f, i) -> {}, (f, o) -> {}); // do nothing;
-
-    //    for (Object[] o : CLASS_TAGS) {
-    //      register((String) o[1], (Class) o[0], null, null);
-    //    }
   }
 }

@@ -90,10 +90,7 @@ public class ColorIcon implements javax.swing.Icon {
         g.fillPolygon(xpoints, ypoints, xpoints.length);
       }
     } else {
-      //           g.setColor(Color.WHITE);
-      //           g.fillRect(x + 1, y + 1, width - 2, height - 2);
       g.setColor(fillColor);
-      //            g.fillRect(x + 2, y + 2, width - 4, height - 4);
       g.fillRect(x + 1, y + 1, width - 2, height - 2);
     }
     g.setColor(new Color(0x666666));

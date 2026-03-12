@@ -82,10 +82,6 @@ public class QuadTreeDrawing extends AbstractDrawing {
     }
   }
 
-  //  public List<Figure> getChildren(Rectangle2D.Double bounds) {
-  //    return new ArrayList<>(quadTree.findInside(bounds));
-  //  }
-
   @Override
   public Figure findFigureInside(Point2D.Double p) {
     Collection<Figure> c = quadTree.findContains(p);

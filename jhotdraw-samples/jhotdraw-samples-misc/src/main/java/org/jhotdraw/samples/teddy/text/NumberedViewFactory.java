@@ -32,11 +32,7 @@ public class NumberedViewFactory implements ViewFactory {
       if (kind.equals(AbstractDocument.ContentElementName)) {
         return new LabelView(elem);
       } else if (kind.equals(AbstractDocument.ParagraphElementName)) {
-        // if (isLineNumbersVisible()) {
         return new NumberedParagraphView(elem, this);
-        // } else {
-        // return new ParagraphView(elem);
-        // }
       } else if (kind.equals(AbstractDocument.SectionElementName)) {
         return new BoxView(elem, View.Y_AXIS);
       } else if (kind.equals(StyleConstants.ComponentElementName)) {

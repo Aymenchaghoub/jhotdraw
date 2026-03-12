@@ -299,8 +299,6 @@ public class DefaultDrawingView extends JComponent implements DrawingView, Edita
         }
       } else {
         // this view should not invalidate its area from foreign drawings changes
-        //        if (e.getInvalidatedArea() != null) {
-        //          repaintDrawingArea(e.getInvalidatedArea());
       }
     }
 

@@ -215,10 +215,6 @@ public abstract class AbstractAttributedFigure implements Figure, Cloneable {
     modified = false;
   }
 
-  //  protected Object getLock() {
-  //    return (getDrawing() == null) ? this : getDrawing().getLock();
-  //  }
-
   /** tool method to process a listener and create its event object lazily. */
   protected void fireFigureEvent(
       BiConsumer<FigureListener, FigureEvent> listenerConsumer,

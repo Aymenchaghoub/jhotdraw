@@ -68,35 +68,6 @@ public class Path2DFigure extends AbstractAttributedFigure {
 
   @Override
   public boolean handleMouseClick(Point2D.Double p, MouseEvent evt, DrawingView view) {
-    //    if (evt.getClickCount() == 2 && view.getHandleDetailLevel() == 0) {
-    //      willChange();
-    //      final int index = splitSegment(p, (float) (5f / view.getScaleFactor()));
-    //      if (index != -1) {
-    //        final BezierPath.Node newNode = getNode(index);
-    //        fireUndoableEditHappened(
-    //            new AbstractUndoableEdit() {
-    //              private static final long serialVersionUID = 1L;
-    //
-    //              @Override
-    //              public void redo() throws CannotRedoException {
-    //                super.redo();
-    //                willChange();
-    //                addNode(index, newNode);
-    //                changed();
-    //              }
-    //
-    //              @Override
-    //              public void undo() throws CannotUndoException {
-    //                super.undo();
-    //                willChange();
-    //                removeNode(index);
-    //                changed();
-    //              }
-    //            });
-    //        changed();
-    //        return true;
-    //      }
-    //    }
     return false;
   }
 
@@ -114,7 +85,6 @@ public class Path2DFigure extends AbstractAttributedFigure {
 
   @Override
   protected void drawStroke(Graphics2D g) {
-    // if (isClosed()) {
     double grow =
         AttributeKeys.getPerpendicularDrawGrowth(this, AttributeKeys.getScaleFactorFromGraphics(g));
     if (grow == 0d) {
@@ -126,9 +96,5 @@ public class Path2DFigure extends AbstractAttributedFigure {
               * attr().get(STROKE_MITER_LIMIT));
       g.draw(gs.createStrokedShape(path));
     }
-    //    } else {
-    //      g.draw(getCappedPath());
-    //    }
-    //    drawCaps(g);
   }
 }

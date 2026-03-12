@@ -48,15 +48,4 @@ public class TrackingEdit extends AbstractUndoableEdit {
     writeLocation.accept(oldValue);
     owner.changed();
   }
-
-  //  @Override
-  //  public boolean addEdit(UndoableEdit anEdit) {
-  //    if (anEdit instanceof TrackingEdit that) {
-  //      if (that.owner == this.owner && that.writeLocation == this.writeLocation) {
-  //        this.newValue = that.newValue;
-  //        return true;
-  //      }
-  //    }
-  //    return false;
-  //  }
 }

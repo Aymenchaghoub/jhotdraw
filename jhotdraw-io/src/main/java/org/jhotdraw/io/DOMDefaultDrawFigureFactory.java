@@ -410,22 +410,12 @@ public class DOMDefaultDrawFigureFactory extends DefaultDOMFactory {
 
   public static void readConnector(AbstractConnector connector, DOMInput domInput)
       throws IOException {
-    // statePersistent is never set
-    //    if (connector.isStatePersistent) {
-    //      isConnectToDecorator = in.getAttribute("connectToDecorator", false);
-    //    }
     domInput.openElement("Owner");
     connector.setOwner((Figure) domInput.readObject(0));
     domInput.closeElement();
   }
 
   public static void writeConnector(Connector connector, DOMOutput domOutput) throws IOException {
-    // statePersistent is never set
-    //    if (isStatePersistent) {
-    //      if (isConnectToDecorator) {
-    //        out.addAttribute("connectToDecorator", true);
-    //      }
-    //    }
     domOutput.openElement("Owner");
     domOutput.writeObject(connector.getOwner());
     domOutput.closeElement();
@@ -490,9 +480,6 @@ public class DOMDefaultDrawFigureFactory extends DefaultDOMFactory {
   public static void readText(TextFigure figure, DOMInput domInput) throws IOException {
     figure.setOrigin(
         new Point2D.Double(domInput.getAttribute("x", 0d), domInput.getAttribute("y", 0d)));
-    //    figure.setBounds(
-    //        new Point2D.Double(domInput.getAttribute("x", 0d), domInput.getAttribute("y", 0d)),
-    //        new Point2D.Double(0, 0));
     readAttributes(figure, domInput);
     readDecorator(figure, domInput);
   }

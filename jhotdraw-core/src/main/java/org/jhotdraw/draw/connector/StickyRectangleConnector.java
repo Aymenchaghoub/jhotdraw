@@ -68,16 +68,4 @@ public class StickyRectangleConnector extends ChopRectangleConnector {
   public String getParameters() {
     return Float.toString((float) (angle / Math.PI * 180));
   }
-
-  //  @Override
-  //  public void read(DOMInput in) throws IOException {
-  //    super.read(in);
-  //    angle = (float) in.getAttribute("angle", 0.0);
-  //  }
-  //
-  //  @Override
-  //  public void write(DOMOutput out) throws IOException {
-  //    super.write(out);
-  //    out.addAttribute("angle", angle);
-  //  }
 }

@@ -276,12 +276,6 @@ public abstract class AbstractDrawingView implements DrawingView, EditableCompon
         }
       } else {
         // this view should not invalidate its area from foreign drawings changes
-        //        if (e.getInvalidatedArea() != null) {
-        //          repaintDrawingArea(
-        //              e.getFigure()
-        //
-        // .getDrawingArea(AttributeKeys.getScaleFactor(getDrawingToViewTransform())));
-        //        }
       }
     }
 

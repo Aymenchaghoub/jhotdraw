@@ -67,18 +67,6 @@ public class DefaultDOMFactory extends JavaPrimitivesDOMFactory {
         (t, domOutput) -> ((DOMStorable) t).write(domOutput));
   }
 
-  //  /** Adds a DOMStorable class to the DOMFactory. */
-  //  public void addStorableClass(String name, Class<?> c) {
-  //    NAME_TO_PROTOTYPE.put(name, c);
-  //    CLASS_TO_NAME.put(c, name);
-  //  }
-  //
-  //  /** Adds a DOMStorable prototype to the DOMFactory. */
-  //  public void addStorable(String name, DOMStorable prototype) {
-  //    NAME_TO_PROTOTYPE.put(name, prototype);
-  //    CLASS_TO_NAME.put(prototype.getClass(), name);
-  //  }
-
   /** Adds an Enum class to the DOMFactory. */
   public void addEnumClass(String name, Class<?> c) {
     ENUM_TO_NAME.put(c, name);

@@ -89,10 +89,6 @@ public abstract class QuadTreeCompositeFigure extends AbstractAttributedComposit
     }
   }
 
-  //  public Collection<Figure> getFigures(Rectangle2D.Double bounds) {
-  //    return new ArrayList<>(quadTree.findInside(bounds));
-  //  }
-
   @Override
   public java.util.List<Figure> getChildren() {
     return Collections.unmodifiableList(children);

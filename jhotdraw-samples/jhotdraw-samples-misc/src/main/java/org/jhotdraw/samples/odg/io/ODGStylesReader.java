@@ -100,14 +100,6 @@ public class ODGStylesReader {
    * @param file A XML file with a &lt;document&gt; root element or with a &lt;document-styles&gt;
    *     root element.
    */
-  //    public void read(File file) throws IOException {
-  //        BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
-  //        try {
-  //            read(in);
-  //        } finally {
-  //            in.close();
-  //        }
-  //    }
   /**
    * Reads a &lt;document-styles&gt; element from the specified input stream.
    *
@@ -419,14 +411,8 @@ public class ODGStylesReader {
         readMasterPageElement(child, styles);
       } else if ("page-layout".equals(name) && (ns == null || ns.equals(STYLE_NAMESPACE))) {
         readPageLayoutElement(child, styles);
-        // } else if ("paragraph-properties".equals(name) && (ns == null ||
-        // ns.equals(STYLE_NAMESPACE))) {
-        //    readParagraphPropertiesElement(child, styles);
       } else if ("style".equals(name) && (ns == null || ns.equals(STYLE_NAMESPACE))) {
         readStyleElement(child, styles);
-        // } else if ("text-properties".equals(name) && (ns == null || ns.equals(STYLE_NAMESPACE)))
-        // {
-        //    readTextPropertiesElement(child, styles);
       } else {
         LOG.warning("ODGStylesReader unsupported <" + elem.getLocalName() + "> child: " + child);
       }
