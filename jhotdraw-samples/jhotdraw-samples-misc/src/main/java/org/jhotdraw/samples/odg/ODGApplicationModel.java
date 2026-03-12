@@ -216,7 +216,7 @@ public class ODGApplicationModel extends DefaultApplicationModel {
     for (double sf : SCALE_FACTORS) {
       m.put(
           (int) (sf * 100) + "%",
-          aa = new ViewPropertyAction(a, v, "scaleFactor", Double.TYPE, new Double(sf)));
+          aa = new ViewPropertyAction(a, v, "scaleFactor", Double.TYPE, Double.valueOf(sf)));
       aa.putValue(Action.NAME, (int) (sf * 100) + " %");
     }
     return m;

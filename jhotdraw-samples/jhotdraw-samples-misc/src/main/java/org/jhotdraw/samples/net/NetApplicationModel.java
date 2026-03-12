@@ -87,7 +87,7 @@ public class NetApplicationModel extends DefaultApplicationModel {
       m.put(
           (int) (sf * 100) + "%",
           aa = new ViewPropertyAction(
-              a, v, DrawingView.SCALE_FACTOR_PROPERTY, Double.TYPE, new Double(sf)));
+              a, v, DrawingView.SCALE_FACTOR_PROPERTY, Double.TYPE, Double.valueOf(sf)));
       aa.putValue(Action.NAME, (int) (sf * 100) + " %");
     }
     return m;
