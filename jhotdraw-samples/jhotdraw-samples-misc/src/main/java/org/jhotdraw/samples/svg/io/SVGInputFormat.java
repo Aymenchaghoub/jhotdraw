@@ -60,6 +60,11 @@ import org.xml.sax.SAXException;
  */
 public class SVGInputFormat implements InputFormat {
 
+  private static final double DEFAULT_SVG_WIDTH = 640d;
+  private static final double DEFAULT_SVG_HEIGHT = 480d;
+  private static final double DEGREES_TO_RADIANS = Math.PI / 180.0;
+  private static final int COLOR_CHANNEL_MAX = 255;
+
   /** The SVGFigure factory is used to create Figure's for the drawing. */
   private SVGFigureFactory factory;
 
@@ -86,19 +91,20 @@ public class SVGInputFormat implements InputFormat {
   private static class Viewport {
 
     /** The width of the Viewport. */
-    public double width = 640d;
+    public double width = DEFAULT_SVG_WIDTH;
 
     /** The height of the Viewport. */
-    public double height = 480d;
+    public double height = DEFAULT_SVG_HEIGHT;
 
     /** The viewBox specifies the coordinate system within the Viewport. */
-    public Rectangle2D.Double viewBox = new Rectangle2D.Double(0d, 0d, 640d, 480d);
+    public Rectangle2D.Double viewBox =
+        new Rectangle2D.Double(0d, 0d, DEFAULT_SVG_WIDTH, DEFAULT_SVG_HEIGHT);
 
     /** Factor for percent values relative to Viewport width. */
-    public double widthPercentFactor = 640d / 100d;
+    public double widthPercentFactor = DEFAULT_SVG_WIDTH / 100d;
 
     /** Factor for percent values relative to Viewport height. */
-    public double heightPercentFactor = 480d / 100d;
+    public double heightPercentFactor = DEFAULT_SVG_HEIGHT / 100d;
 
     /**
      * Factor for number values in the user coordinate system. This is the smaller value of width /
@@ -1927,7 +1933,8 @@ public class SVGInputFormat implements InputFormat {
     // Computed value:    Specified value, except inherit
     double opacity = toDouble(elem, readAttribute(elem, "solid-opacity", "1"), 1, 0, 1);
     if (opacity != 1) {
-      color = new Color(((int) (255 * opacity) << 24) | (0xffffff & color.getRGB()), true);
+      color = new Color(
+          ((int) (COLOR_CHANNEL_MAX * opacity) << 24) | (0xffffff & color.getRGB()), true);
     }
     elementObjects.put(elem, color);
   }
@@ -3129,21 +3136,21 @@ public class SVGInputFormat implements InputFormat {
             tt.pushBack();
             cx = cy = 0;
           }
-          t.rotate(angle * Math.PI / 180d, cx, cy);
+          t.rotate(angle * DEGREES_TO_RADIANS, cx, cy);
         } else if ("skewX".equals(type)) {
           double angle;
           if (tt.nextToken() != StreamPosTokenizer.TT_NUMBER) {
             throw new IOException("Skew angle not found in transform " + str);
           }
           angle = tt.nval;
-          t.concatenate(new AffineTransform(1, 0, Math.tan(angle * Math.PI / 180), 1, 0, 0));
+          t.concatenate(new AffineTransform(1, 0, Math.tan(angle * DEGREES_TO_RADIANS), 1, 0, 0));
         } else if ("skewY".equals(type)) {
           double angle;
           if (tt.nextToken() != StreamPosTokenizer.TT_NUMBER) {
             throw new IOException("Skew angle not found in transform " + str);
           }
           angle = tt.nval;
-          t.concatenate(new AffineTransform(1, Math.tan(angle * Math.PI / 180), 0, 1, 0, 0));
+          t.concatenate(new AffineTransform(1, Math.tan(angle * DEGREES_TO_RADIANS), 0, 1, 0, 0));
         } else if ("ref".equals(type)) {
           System.err.println(
               "SVGInputFormat warning: ignored ref(...) transform attribute in element " + elem);
