@@ -44,13 +44,6 @@ public class RoundRectangleRadiusHandle extends AbstractHandle {
     }
   }
 
-  private Point locate() {
-    RoundRectangleFigure owner = (RoundRectangleFigure) getOwner();
-    Rectangle r = view.drawingToView(owner.getBounds());
-    Point arc = view.drawingToView(new Point2D.Double(owner.getArcWidth(), owner.getArcHeight()));
-    return new Point(r.x + arc.x / 2 + OFFSET, r.y + arc.y / 2 + OFFSET);
-  }
-
   @Override
   public void trackStart(Point anchor, int modifiersEx) {
     RoundRectangleFigure owner = (RoundRectangleFigure) getOwner();

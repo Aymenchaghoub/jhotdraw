@@ -271,11 +271,6 @@ public class BezierDemo extends javax.swing.JPanel {
     });
   }
 
-  private double getSquaredError() {
-    double error = getError();
-    return error * error;
-  }
-
   private double getError() {
     double error = 2d / getZoomFactor();
     return error;

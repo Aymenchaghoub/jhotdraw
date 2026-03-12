@@ -777,11 +777,6 @@ public class Bezier {
     return v;
   }
 
-  /** Return the dot product of vectors a and b. */
-  private static double v2Dot(Point2D.Double a, Point2D.Double b) {
-    return (a.x * b.x) + (a.y * b.y);
-  }
-
   /** Normalizes the input vector and returns it. */
   private static Point2D.Double v2Normalize(Point2D.Double v) {
     double len = v2Length(v);
@@ -804,25 +799,5 @@ public class Bezier {
     c.x = a.x - b.x;
     c.y = a.y - b.y;
     return (c);
-  }
-
-  /** B0, B1, B2, B3 : Bezier multipliers */
-  private static double b0(double u) {
-    double tmp = 1.0 - u;
-    return (tmp * tmp * tmp);
-  }
-
-  private static double b1(double u) {
-    double tmp = 1.0 - u;
-    return (3 * u * (tmp * tmp));
-  }
-
-  private static double b2(double u) {
-    double tmp = 1.0 - u;
-    return (3 * u * u * tmp);
-  }
-
-  private static double b3(double u) {
-    return (u * u * u);
   }
 }

@@ -758,19 +758,6 @@ public class PaletteToolBarUI extends ToolBarUI implements SwingConstants {
     this.floatingColor = c;
   }
 
-  private boolean isBlocked(Component comp, Object constraint) {
-    if (comp instanceof Container) {
-      Container cont = (Container) comp;
-      LayoutManager lm = cont.getLayout();
-      if (lm instanceof BorderLayout) {
-        BorderLayout blm = (BorderLayout) lm;
-        Component c = blm.getLayoutComponent(cont, constraint);
-        return (c != null && c != toolBar);
-      }
-    }
-    return false;
-  }
-
   public boolean canDock(Component c, Point p) {
     return (p != null && getDockingConstraint(c, p) != null);
   }

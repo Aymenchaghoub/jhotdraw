@@ -93,27 +93,6 @@ public class JMDIDesktopPane extends JDesktopPane implements Arrangeable {
     checkDesktopSize();
   }
 
-  private void tileFramesHorizontally() {
-    Component[] allFrames = getAllFrames();
-    // do nothing if no frames to work with
-    if (allFrames.length == 0) {
-      return;
-    }
-    manager.setNormalSize();
-    int frameHeight = getBounds().height / allFrames.length;
-    int y = 0;
-    for (Component allFrame : allFrames) {
-      try {
-        ((JInternalFrame) allFrame).setMaximum(false);
-      } catch (PropertyVetoException e) {
-        e.printStackTrace();
-      }
-      allFrame.setBounds(0, y, getBounds().width, frameHeight);
-      y = y + frameHeight;
-    }
-    checkDesktopSize();
-  }
-
   public void tileFramesVertically() {
     Component[] allFrames = getAllFrames();
     // do nothing if no frames to work with
