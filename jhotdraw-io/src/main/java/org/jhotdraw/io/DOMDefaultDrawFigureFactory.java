@@ -11,6 +11,7 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -49,7 +50,6 @@ import org.jhotdraw.draw.locator.LinearLabelLocator;
 import org.jhotdraw.draw.locator.Locator;
 import org.jhotdraw.draw.locator.RelativeLocator;
 import org.jhotdraw.utils.geom.path.BezierPath;
-import org.jhotdraw.utils.io.Base64;
 import org.jhotdraw.xml.DOMInput;
 import org.jhotdraw.xml.DOMOutput;
 import org.jhotdraw.xml.DefaultDOMFactory;
@@ -213,7 +213,7 @@ public class DOMDefaultDrawFigureFactory extends DefaultDOMFactory {
       domInput.openElement("imageData");
       String base64Data = domInput.getText();
       if (base64Data != null) {
-        figure.setImageData(Base64.decode(base64Data));
+        figure.setImageData(Base64.getMimeDecoder().decode(base64Data));
       }
       domInput.closeElement();
     }
@@ -224,7 +224,8 @@ public class DOMDefaultDrawFigureFactory extends DefaultDOMFactory {
     writeDecorator(figure, domOutput);
     if (figure.getImageData() != null) {
       domOutput.openElement("imageData");
-      domOutput.addText(Base64.encodeBytes(figure.getImageData()));
+      domOutput.addText(
+          Base64.getMimeEncoder(76, new byte[] {'\n'}).encodeToString(figure.getImageData()));
       domOutput.closeElement();
     }
   }

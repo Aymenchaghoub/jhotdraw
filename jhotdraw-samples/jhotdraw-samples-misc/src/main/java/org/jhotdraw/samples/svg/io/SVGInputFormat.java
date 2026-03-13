@@ -39,7 +39,6 @@ import org.jhotdraw.samples.svg.SVGAttributeKeys.TextAnchor;
 import org.jhotdraw.samples.svg.figures.SVGFigure;
 import org.jhotdraw.utils.formatter.FontFormatter;
 import org.jhotdraw.utils.geom.path.BezierPath;
-import org.jhotdraw.utils.io.Base64;
 import org.jhotdraw.utils.io.StreamPosTokenizer;
 import org.jhotdraw.utils.util.LocaleUtil;
 import org.jhotdraw.xml.css.CSSParser;
@@ -596,7 +595,7 @@ public class SVGInputFormat implements InputFormat {
         int semicolonPos = href.indexOf(';');
         if (semicolonPos != -1) {
           if (href.indexOf(";base64,") == semicolonPos) {
-            imageData = Base64.decode(href.substring(semicolonPos + 8));
+            imageData = Base64.getMimeDecoder().decode(href.substring(semicolonPos + 8));
           } else {
             throw new IOException("Unsupported encoding in data href in image element:" + href);
           }

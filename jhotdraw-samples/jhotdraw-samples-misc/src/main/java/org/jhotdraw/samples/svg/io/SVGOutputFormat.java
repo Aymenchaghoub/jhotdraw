@@ -49,7 +49,6 @@ import org.jhotdraw.samples.svg.figures.SVGRectFigure;
 import org.jhotdraw.samples.svg.figures.SVGTextAreaFigure;
 import org.jhotdraw.samples.svg.figures.SVGTextFigure;
 import org.jhotdraw.utils.geom.path.BezierPath;
-import org.jhotdraw.utils.io.Base64;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -337,7 +336,12 @@ public class SVGOutputFormat implements OutputFormat {
     writeAttribute(elem, "y", y, 0d);
     writeAttribute(elem, "width", w, 0d);
     writeAttribute(elem, "height", h, 0d);
-    writeAttribute(elem, "xlink:href", "data:image;base64," + Base64.encodeBytes(imageData), "");
+    writeAttribute(
+        elem,
+        "xlink:href",
+        "data:image;base64,"
+            + Base64.getMimeEncoder(76, new byte[] {'\n'}).encodeToString(imageData),
+        "");
     writeOpacityAttribute(elem, attributes);
     writeTransformAttribute(elem, attributes);
     return elem;
