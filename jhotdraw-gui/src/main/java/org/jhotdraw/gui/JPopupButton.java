@@ -327,7 +327,7 @@ public class JPopupButton extends javax.swing.JButton {
         && actionArea != null
         && actionArea.contains(evt.getX() - getInsets().left, evt.getY() - getInsets().top)) {
       action.actionPerformed(new ActionEvent(
-          this, ActionEvent.ACTION_PERFORMED, null, evt.getWhen(), evt.getModifiers()));
+          this, ActionEvent.ACTION_PERFORMED, null, evt.getWhen(), evt.getModifiersEx()));
     }
   } // GEN-LAST:event_performAction
 

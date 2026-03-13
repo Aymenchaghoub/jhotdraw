@@ -231,7 +231,7 @@ public class JFontChooser extends JComponent {
     int modifiers = 0;
     AWTEvent currentEvent = EventQueue.getCurrentEvent();
     if (currentEvent instanceof InputEvent) {
-      modifiers = ((InputEvent) currentEvent).getModifiers();
+      modifiers = ((InputEvent) currentEvent).getModifiersEx();
     } else if (currentEvent instanceof ActionEvent) {
       modifiers = ((ActionEvent) currentEvent).getModifiers();
     }

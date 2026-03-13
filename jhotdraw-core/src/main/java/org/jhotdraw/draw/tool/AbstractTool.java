@@ -214,13 +214,13 @@ public abstract class AbstractTool extends AbstractBean implements Tool {
       Object obj = null;
       if (inputMap != null) {
         // Lookup the input map of the tool
-        obj = inputMap.get(KeyStroke.getKeyStroke(evt.getKeyCode(), evt.getModifiers(), false));
+        obj = inputMap.get(KeyStroke.getKeyStroke(evt.getKeyCode(), evt.getModifiersEx(), false));
       }
       if (obj == null) {
         // Fall back to the input map of the drawing editor
         InputMap im = editor.getInputMap();
         if (im != null) {
-          obj = im.get(KeyStroke.getKeyStroke(evt.getKeyCode(), evt.getModifiers(), false));
+          obj = im.get(KeyStroke.getKeyStroke(evt.getKeyCode(), evt.getModifiersEx(), false));
         }
       }
       ActionListener al = null;
@@ -239,7 +239,7 @@ public abstract class AbstractTool extends AbstractBean implements Tool {
       if (al != null) {
         evt.consume();
         al.actionPerformed(new ActionEvent(
-            this, ActionEvent.ACTION_PERFORMED, "tool", evt.getWhen(), evt.getModifiers()));
+            this, ActionEvent.ACTION_PERFORMED, "tool", evt.getWhen(), evt.getModifiersEx()));
         fireToolDone();
       }
     }

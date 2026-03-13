@@ -179,7 +179,7 @@ public class BezierNodeHandle extends AbstractHandle implements CoordinateDataSu
                     | InputEvent.ALT_DOWN_MASK
                     | InputEvent.SHIFT_DOWN_MASK))
             != 0
-        && (modifiersEx & InputEvent.BUTTON2_MASK) == 0) {
+        && (modifiersEx & InputEvent.BUTTON2_DOWN_MASK) == 0) {
       f.willChange();
       if (index > 0 && index < f.getNodeCount() || f.isClosed()) {
         newValue.mask = (newValue.mask + 3) % 4;
