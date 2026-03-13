@@ -110,4 +110,27 @@ public class BezierPathTest {
       pathIterator.next();
     }
   }
+
+  @Test
+  public void testCurveToControlPointOverload() {
+    BezierPath instance = new BezierPath();
+    instance.add(new Point2D.Double(0, 0));
+
+    BezierPath.ControlPoint cp1 = new BezierPath.ControlPoint(1, 2);
+    BezierPath.ControlPoint cp2 = new BezierPath.ControlPoint(3, 4);
+    BezierPath.ControlPoint end = new BezierPath.ControlPoint(5, 6);
+
+    instance.curveTo(cp1, cp2, end);
+
+    assertEquals(2, instance.nodes().size());
+    BezierPath.Node firstNode = instance.nodes().get(0);
+    BezierPath.Node secondNode = instance.nodes().get(1);
+
+    assertEquals(cp1.x(), firstNode.getControlPoint(2).x);
+    assertEquals(cp1.y(), firstNode.getControlPoint(2).y);
+    assertEquals(cp2.x(), secondNode.getControlPoint(1).x);
+    assertEquals(cp2.y(), secondNode.getControlPoint(1).y);
+    assertEquals(end.x(), secondNode.getControlPoint(0).x);
+    assertEquals(end.y(), secondNode.getControlPoint(0).y);
+  }
 }

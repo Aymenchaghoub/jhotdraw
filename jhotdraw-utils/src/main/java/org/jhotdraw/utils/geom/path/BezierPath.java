@@ -249,6 +249,9 @@ public class BezierPath implements Shape, Serializable, Cloneable {
     }
   }
 
+  /** Immutable control point used by the typed cubic curve overload. */
+  public record ControlPoint(double x, double y) {}
+
   /**
    * Adds a node to the path.
    *
@@ -1041,6 +1044,16 @@ public class BezierPath implements Shape, Serializable, Cloneable {
   }
 
   /**
+   * Adds a cubic curve using typed control points to avoid coordinate order mistakes.
+   *
+   * <p>This is equivalent to calling
+   * curveTo(cp1.x(), cp1.y(), cp2.x(), cp2.y(), end.x(), end.y()).
+   */
+  public void curveTo(ControlPoint cp1, ControlPoint cp2, ControlPoint end) {
+    curveTo(cp1.x(), cp1.y(), cp2.x(), cp2.y(), end.x(), end.y());
+  }
+
+  /**
    * Adds an elliptical arc, defined by two radii, an angle from the x-axis, a flag to choose the
    * large arc or not, a flag to indicate if we increase or decrease the angles and the final point
    * of the arc.
@@ -1159,7 +1172,10 @@ public class BezierPath implements Shape, Serializable, Cloneable {
           // ignore
           break;
         case PathIterator.SEG_CUBICTO:
-          curveTo(coords[0], coords[1], coords[2], coords[3], coords[4], coords[5]);
+          curveTo(
+              new ControlPoint(coords[0], coords[1]),
+              new ControlPoint(coords[2], coords[3]),
+              new ControlPoint(coords[4], coords[5]));
           break;
         case PathIterator.SEG_LINETO:
           lineTo(coords[0], coords[1]);
