@@ -8,16 +8,14 @@
 package org.jhotdraw.draw.liner;
 
 import java.awt.geom.*;
-import java.util.*;
 import org.jhotdraw.draw.connector.Connector;
 import org.jhotdraw.draw.figure.ConnectionFigure;
 import org.jhotdraw.draw.figure.LineConnectionFigure;
-import org.jhotdraw.draw.handle.Handle;
 import org.jhotdraw.utils.geom.Geom;
 import org.jhotdraw.utils.geom.path.BezierPath;
 
 /** SlantedLiner. */
-public class SlantedLiner implements Liner {
+public class SlantedLiner extends AbstractLiner {
 
   private double slantSize;
 
@@ -30,8 +28,8 @@ public class SlantedLiner implements Liner {
   }
 
   @Override
-  public Collection<Handle> createHandles(BezierPath path) {
-    return Collections.emptyList();
+  protected double getOffsetSize() {
+    return slantSize;
   }
 
   @Override
@@ -42,82 +40,8 @@ public class SlantedLiner implements Liner {
     if (start == null || end == null || path == null) {
       return;
     }
-    // Special treatment if the connection connects the same figure
     if (figure.getStartFigure() == figure.getEndFigure()) {
-      // Ensure path has exactly four nodes
-      while (path.size() < 5) {
-        path.add(1, new BezierPath.Node(0, 0));
-      }
-      while (path.size() > 5) {
-        path.remove(1);
-      }
-      Point2D.Double sp = start.findStart(figure);
-      Point2D.Double ep = end.findEnd(figure);
-      Rectangle2D.Double sb = start.getBounds();
-      Rectangle2D.Double eb = end.getBounds();
-      int soutcode = sb.outcode(sp);
-      if (soutcode == 0) {
-        soutcode = Geom.outcode(sb, eb);
-      }
-      int eoutcode = eb.outcode(ep);
-      if (eoutcode == 0) {
-        eoutcode = Geom.outcode(sb, eb);
-      }
-      path.nodes().get(0).moveTo(sp);
-      path.nodes().get(path.size() - 1).moveTo(ep);
-      switch (soutcode) {
-        case Geom.OUT_TOP:
-          eoutcode = Geom.OUT_LEFT;
-          break;
-        case Geom.OUT_RIGHT:
-          eoutcode = Geom.OUT_TOP;
-          break;
-        case Geom.OUT_BOTTOM:
-          eoutcode = Geom.OUT_RIGHT;
-          break;
-        case Geom.OUT_LEFT:
-          eoutcode = Geom.OUT_BOTTOM;
-          break;
-        default:
-          eoutcode = Geom.OUT_TOP;
-          soutcode = Geom.OUT_RIGHT;
-          break;
-      }
-      path.nodes().get(1).moveTo(sp.x + slantSize, sp.y);
-      if ((soutcode & Geom.OUT_RIGHT) != 0) {
-        path.nodes().get(1).moveTo(sp.x + slantSize, sp.y);
-      } else if ((soutcode & Geom.OUT_LEFT) != 0) {
-        path.nodes().get(1).moveTo(sp.x - slantSize, sp.y);
-      } else if ((soutcode & Geom.OUT_BOTTOM) != 0) {
-        path.nodes().get(1).moveTo(sp.x, sp.y + slantSize);
-      } else {
-        path.nodes().get(1).moveTo(sp.x, sp.y - slantSize);
-      }
-      if ((eoutcode & Geom.OUT_RIGHT) != 0) {
-        path.nodes().get(3).moveTo(ep.x + slantSize, ep.y);
-      } else if ((eoutcode & Geom.OUT_LEFT) != 0) {
-        path.nodes().get(3).moveTo(ep.x - slantSize, ep.y);
-      } else if ((eoutcode & Geom.OUT_BOTTOM) != 0) {
-        path.nodes().get(3).moveTo(ep.x, ep.y + slantSize);
-      } else {
-        path.nodes().get(3).moveTo(ep.x, ep.y - slantSize);
-      }
-      switch (soutcode) {
-        case Geom.OUT_RIGHT:
-          path.nodes().get(2).moveTo(path.nodes().get(1).x[0], path.nodes().get(3).y[0]);
-          break;
-        case Geom.OUT_TOP:
-          path.nodes().get(2).moveTo(path.nodes().get(1).y[0], path.nodes().get(3).x[0]);
-          break;
-        case Geom.OUT_LEFT:
-          path.nodes().get(2).moveTo(path.nodes().get(1).x[0], path.nodes().get(3).y[0]);
-          break;
-        case Geom.OUT_BOTTOM:
-        default:
-          path.nodes().get(2).moveTo(path.nodes().get(1).y[0], path.nodes().get(3).x[0]);
-          break;
-      }
-      // Regular treatment if the connection connects to two different figures
+      routeSameFigure(figure, slantSize);
     } else {
       // Ensure path has exactly four nodes
       while (path.size() < 4) {
@@ -179,21 +103,9 @@ public class SlantedLiner implements Liner {
         path.nodes().get(2).moveTo(ep.x, ep.y - slantSize);
       }
     }
-    // Ensure all path nodes are straight
     for (BezierPath.Node node : path.nodes()) {
       node.setMask(BezierPath.C0_MASK);
     }
     path.invalidatePath();
-  }
-
-  @Override
-  public Liner clone() {
-    try {
-      return (Liner) super.clone();
-    } catch (CloneNotSupportedException ex) {
-      InternalError error = new InternalError(ex.getMessage());
-      error.initCause(ex);
-      throw error;
-    }
   }
 }
