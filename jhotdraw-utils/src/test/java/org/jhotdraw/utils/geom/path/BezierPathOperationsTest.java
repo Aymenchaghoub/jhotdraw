@@ -49,8 +49,8 @@ class BezierPathOperationsTest {
     path.moveTo(0, 0);
     path.lineTo(10, 0);
 
-    int insertedIndex = path.splitSegment(new Point2D.Double(5, 0), 0.1d);
-
+    int insertedIndex = path.findSplitIndex(new Point2D.Double(5, 0), 0.1d);
+    path.splitSegment(new Point2D.Double(5, 0), 0.1d);
     assertEquals(1, insertedIndex);
     assertEquals(3, path.nodes().size());
     assertEquals(5d, path.nodes().get(1).getControlPoint(0).x, 0.0001d);

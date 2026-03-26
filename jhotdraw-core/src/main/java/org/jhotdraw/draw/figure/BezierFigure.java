@@ -611,7 +611,9 @@ public class BezierFigure extends AbstractAttributedFigure {
    * @return the index of the segment or -1 if no segment was hit.
    */
   public int splitSegment(Point2D.Double split, float tolerance) {
-    return path.splitSegment(split, tolerance);
+    int index = path.findSplitIndex(split, tolerance);
+    path.splitSegment(split, tolerance);
+    return index;
   }
 
   /** Handles a mouse click. */

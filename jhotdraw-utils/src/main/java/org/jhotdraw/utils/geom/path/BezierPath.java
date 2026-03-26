@@ -776,13 +776,6 @@ public class BezierPath implements Shape, Serializable, Cloneable {
       i.currentSegment(coords);
       double segLen = Geom.length(prevX, prevY, coords[0], coords[1]);
       if (pos + segLen >= relativeLen) {
-        // if (true) return new Point2D.Double(coords[0], coords[1]);
-        // Compute the relative Point2D.Double on the line
-        /*
-        return new Point2D.Double(
-        prevX * pos / len + coords[0] * (pos + segLen) / len,
-        prevY * pos / len + coords[1] * (pos + segLen) / len
-        );*/
         double factor = (relativeLen - pos) / segLen;
         return new Point2D.Double(
             prevX * (1 - factor) + coords[0] * factor, prevY * (1 - factor) + coords[1] * factor);
@@ -941,12 +934,15 @@ public class BezierPath implements Shape, Serializable, Cloneable {
   /**
    * Splits the segment at the given Point2D.Double if a segment was hit.
    *
-   * @return the index of the segment or -1 if no segment was hit.
+   * <p>M6 — Correction violation CQS : cette méthode est désormais une commande pure.
+   * Elle modifie l'état (insère un nœud) sans retourner de valeur.
+   * Pour obtenir l'index du nouveau nœud, utiliser {@link #findSplitIndex(Point2D.Double, double)}
+   * avant d'appeler cette méthode.
    */
-  public int splitSegment(Point2D.Double split, double tolerance) {
+  public void splitSegment(Point2D.Double split, double tolerance) {
     int i = findSegment(split, tolerance);
-    int nextI = (i + 1) % NODES.size();
     if (i != -1) {
+      int nextI = (i + 1) % NODES.size();
       if ((NODES.get(i).mask & C2_MASK) == C2_MASK && (NODES.get(nextI).mask & C1_MASK) == 0) {
         // quadto
         NODES.add(i + 1, new Node(C2_MASK, split, split, split));
@@ -963,7 +959,21 @@ public class BezierPath implements Shape, Serializable, Cloneable {
         NODES.add(i + 1, new Node(split));
       }
     }
-    return i + 1;
+  }
+
+  /**
+   * Returns the index that a new node would have after splitting the segment hit by the given
+   * point.
+   *
+   * <p>M6 — Requête pure (ne modifie pas l'état) complémentaire à
+   * {@link #splitSegment(Point2D.Double, double)}.
+   * Appelants qui avaient besoin de l'index de retour de l'ancien {@code splitSegment} doivent
+   * désormais appeler cette méthode AVANT d'appeler {@code splitSegment}.
+   *
+   * @return the index of the new node after the split, or 0 if no segment was hit.
+   */
+  public int findSplitIndex(Point2D.Double split, double tolerance) {
+    return findSegment(split, tolerance) + 1;
   }
 
   /**
