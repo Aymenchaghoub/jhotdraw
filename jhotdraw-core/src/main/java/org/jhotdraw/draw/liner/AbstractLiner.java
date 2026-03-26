@@ -19,18 +19,27 @@ import org.jhotdraw.utils.geom.path.BezierPath;
 
 /**
  * AbstractLiner extracts common logic for ElbowLiner and SlantedLiner.
+ *
+ * <p>Both liners share an identical ~89-line branch that handles connections
+ * where start and end figure are the same. The only difference between the two
+ * was the name of the offset parameter ({@code shoulderSize} vs {@code slantSize}).
+ * This class removes that duplication by delegating the value to
+ * {@link #getOffsetSize()}, implemented by each concrete subclass.
  */
 public abstract class AbstractLiner implements Liner, Serializable {
+
   private static final long serialVersionUID = 1L;
 
   /**
-   * Returns the offset size (shoulderSize or slantSize) for the liner.
+   * Returns the offset size (shoulderSize or slantSize) used when routing
+   * the connection away from the connector anchor points.
    */
   protected abstract double getOffsetSize();
 
   /**
-   * Logique partagée pour router la connexion lorsqu'elle commence et se termine
-   * sur la même figure.
+   * Shared routing logic for the case where the connection starts and ends
+   * on the same figure. Extracted verbatim from ElbowLiner / SlantedLiner
+   * (former lines 41-129), parameterised via {@link #getOffsetSize()}.
    */
   protected void routeSameFigure(ConnectionFigure figure, double offsetSize) {
     BezierPath path = ((LineConnectionFigure) figure).getBezierPath();
@@ -110,7 +119,10 @@ public abstract class AbstractLiner implements Liner, Serializable {
     }
   }
 
-  // Default implementations for Liner interface
+  // -------------------------------------------------------------------------
+  // Default implementations for the Liner interface
+  // -------------------------------------------------------------------------
+
   @Override
   public Collection<Handle> createHandles(BezierPath path) {
     return java.util.Collections.emptyList();

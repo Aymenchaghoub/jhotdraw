@@ -14,7 +14,11 @@ import org.jhotdraw.draw.figure.LineConnectionFigure;
 import org.jhotdraw.utils.geom.Geom;
 import org.jhotdraw.utils.geom.path.BezierPath;
 
-/** SlantedLiner. */
+/**
+ * A {@link Liner} that constrains a connection to slanted (diagonal-shoulder) lines.
+ *
+ * <p>The "same-figure" routing branch is inherited from {@link AbstractLiner}.
+ */
 public class SlantedLiner extends AbstractLiner {
 
   private double slantSize;
@@ -27,6 +31,7 @@ public class SlantedLiner extends AbstractLiner {
     this.slantSize = slantSize;
   }
 
+  /** Exposes {@code slantSize} to the shared routing logic in {@link AbstractLiner}. */
   @Override
   protected double getOffsetSize() {
     return slantSize;
@@ -40,6 +45,7 @@ public class SlantedLiner extends AbstractLiner {
     if (start == null || end == null || path == null) {
       return;
     }
+    // Same-figure case: delegate to AbstractLiner
     if (figure.getStartFigure() == figure.getEndFigure()) {
       routeSameFigure(figure, slantSize);
     } else {
@@ -51,7 +57,11 @@ public class SlantedLiner extends AbstractLiner {
     path.invalidatePath();
   }
 
-  /** Routes the connection between two different figures. */
+  // -------------------------------------------------------------------------
+  // Different-figure routing (specific to SlantedLiner)
+  // -------------------------------------------------------------------------
+
+  /** Routes the connection between two different figures with diagonal shoulders. */
   private void routeDifferentFigures(
       BezierPath path, Connector start, Connector end, ConnectionFigure figure) {
     while (path.size() < 4) {
@@ -73,8 +83,8 @@ public class SlantedLiner extends AbstractLiner {
   }
 
   /**
-   * Computes the outcode for a point relative to its bounding rectangle.
-   * Falls back to edge comparison if the point lies exactly on the boundary.
+   * Computes the outcode for a point relative to its bounding rectangle,
+   * falling back to edge comparison when the point lies exactly on the boundary.
    */
   private int computeOutcode(
       Rectangle2D.Double bounds, Point2D.Double point, Rectangle2D.Double otherBounds) {
