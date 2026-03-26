@@ -629,23 +629,17 @@ public class Base64 {
    * @param destination the array to hold the conversion
    * @param destOffset the index where output will be put
    * @return the number of decoded bytes converted
+   * @throws IllegalArgumentException if the Base64 input contains invalid characters
    * @since 1.3
    */
   private static int decode4to3(byte[] source, int srcOffset, byte[] destination, int destOffset) {
     // Example: Dk==
     if (source[srcOffset + 2] == EQUALS_SIGN) {
-      // Two ways to do the same thing. Don't know which way I like best.
-      // int outBuff =   ( ( DECODABET[ source[ srcOffset    ] ] << 24 ) >>>  6 )
-      //              | ( ( DECODABET[ source[ srcOffset + 1] ] << 24 ) >>> 12 );
       int outBuff = ((DECODABET[source[srcOffset]] & 0xFF) << 18)
           | ((DECODABET[source[srcOffset + 1]] & 0xFF) << 12);
       destination[destOffset] = (byte) (outBuff >>> 16);
       return 1;
     } else if (source[srcOffset + 3] == EQUALS_SIGN) {
-      // Two ways to do the same thing. Don't know which way I like best.
-      // int outBuff =   ( ( DECODABET[ source[ srcOffset     ] ] << 24 ) >>>  6 )
-      //              | ( ( DECODABET[ source[ srcOffset + 1 ] ] << 24 ) >>> 12 )
-      //              | ( ( DECODABET[ source[ srcOffset + 2 ] ] << 24 ) >>> 18 );
       int outBuff = ((DECODABET[source[srcOffset]] & 0xFF) << 18)
           | ((DECODABET[source[srcOffset + 1]] & 0xFF) << 12)
           | ((DECODABET[source[srcOffset + 2]] & 0xFF) << 6);
@@ -653,12 +647,8 @@ public class Base64 {
       destination[destOffset + 1] = (byte) (outBuff >>> 8);
       return 2;
     } else {
+      // M15 — Remplacement du code d'erreur (return -1) par une exception (fail fast)
       try {
-        // Two ways to do the same thing. Don't know which way I like best.
-        // int outBuff =   ( ( DECODABET[ source[ srcOffset     ] ] << 24 ) >>>  6 )
-        //              | ( ( DECODABET[ source[ srcOffset + 1 ] ] << 24 ) >>> 12 )
-        //              | ( ( DECODABET[ source[ srcOffset + 2 ] ] << 24 ) >>> 18 )
-        //              | ( ( DECODABET[ source[ srcOffset + 3 ] ] << 24 ) >>> 24 );
         int outBuff = ((DECODABET[source[srcOffset]] & 0xFF) << 18)
             | ((DECODABET[source[srcOffset + 1]] & 0xFF) << 12)
             | ((DECODABET[source[srcOffset + 2]] & 0xFF) << 6)
@@ -668,12 +658,8 @@ public class Base64 {
         destination[destOffset + 2] = (byte) (outBuff);
         return 3;
       } catch (Exception e) {
-        System.out.println("" + source[srcOffset] + ": " + (DECODABET[source[srcOffset]]));
-        System.out.println("" + source[srcOffset + 1] + ": " + (DECODABET[source[srcOffset + 1]]));
-        System.out.println("" + source[srcOffset + 2] + ": " + (DECODABET[source[srcOffset + 2]]));
-        System.out.println("" + source[srcOffset + 3] + ": " + (DECODABET[source[srcOffset + 3]]));
-        return -1;
-      } // e nd catch
+        throw new IllegalArgumentException("Invalid Base64 input at position " + srcOffset, e);
+      }
     }
   }
 
@@ -685,6 +671,7 @@ public class Base64 {
    * @param off The offset of where to begin decoding
    * @param len The length of characters to decode
    * @return decoded data
+   * @throws IllegalArgumentException if the input contains invalid Base64 characters
    * @since 1.3
    */
   public static byte[] decode(byte[] source, int off, int len) {
@@ -704,7 +691,14 @@ public class Base64 {
         if (sbiDecode >= EQUALS_SIGN_ENC) {
           b4[b4Posn++] = sbiCrop;
           if (b4Posn > 3) {
-            outBuffPosn += decode4to3(b4, 0, outBuff, outBuffPosn);
+            // M7 — decode4to3 lève IllegalArgumentException en cas d'entrée invalide.
+            // decode() ne déclare pas throws IOException, on propage donc l'exception
+            // unchecked directement (fail fast, corruption silencieuse du buffer évitée).
+            try {
+              outBuffPosn += decode4to3(b4, 0, outBuff, outBuffPosn);
+            } catch (IllegalArgumentException e) {
+              throw new IllegalArgumentException("Base64 decoding failed", e);
+            }
             b4Posn = 0;
             // If that was the equals sign, break out of 'for' loop
             if (sbiCrop == EQUALS_SIGN) {
@@ -713,8 +707,8 @@ public class Base64 {
           }
         }
       } else {
-        System.err.println("Bad Base64 input character at " + i + ": " + source[i] + "(decimal)");
-        return null;
+        throw new IllegalArgumentException(
+            "Bad Base64 input character at " + i + ": " + source[i] + " (decimal)");
       }
     } // each input character
     byte[] out = new byte[outBuffPosn];
@@ -728,6 +722,7 @@ public class Base64 {
    *
    * @param s the string to decode
    * @return the decoded data
+   * @throws IllegalArgumentException if the input contains invalid Base64 characters
    * @since 1.4
    */
   public static byte[] decode(String s) {
@@ -737,7 +732,6 @@ public class Base64 {
     } catch (java.io.UnsupportedEncodingException uee) {
       bytes = s.getBytes();
     }
-    // </change>
     // Decode
     bytes = decode(bytes, 0, bytes.length);
     // Check to see if it's gzip-compressed
@@ -1119,8 +1113,6 @@ public class Base64 {
       int b;
       for (i = 0; i < len; i++) {
         b = read();
-        // if( b < 0 && i == 0 )
-        //    return -1;
         if (b >= 0) {
           dest[off + i] = (byte) b;
         } else if (i == 0) {
@@ -1201,6 +1193,7 @@ public class Base64 {
      * When decoding, bytes are buffered four at a time.
      *
      * @param theByte the byte to write
+     * @throws java.io.IOException if an I/O error occurs or if the Base64 input is invalid
      * @since 1.3
      */
     @Override
@@ -1227,9 +1220,15 @@ public class Base64 {
         if (DECODABET[theByte & 0x7f] > WHITE_SPACE_ENC) {
           buffer[position++] = (byte) theByte;
           if (position >= bufferLength) {
-            int len = Base64.decode4to3(buffer, 0, b4, 0);
-            out.write(b4, 0, len);
-            // out.write( Base64.decode4to3( buffer ) );
+            // M7 — appelant 2 : decode4to3 lève désormais IllegalArgumentException
+            // en cas d'entrée invalide. On la propage en IOException pour respecter
+            // le contrat de OutputStream.write().
+            try {
+              int len = Base64.decode4to3(buffer, 0, b4, 0);
+              out.write(b4, 0, len);
+            } catch (IllegalArgumentException e) {
+              throw new java.io.IOException("Base64 decoding failed", e);
+            }
             position = 0;
           }
         } else if (DECODABET[theByte & 0x7f] != WHITE_SPACE_ENC) {
