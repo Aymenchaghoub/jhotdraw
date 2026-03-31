@@ -485,150 +485,79 @@ public class BezierPath implements Shape, Serializable, Cloneable {
   @Override
   public Rectangle2D.Double getBounds2D() {
     if (bounds == null) {
-      double x1, y1, x2, y2;
       int size = NODES.size();
       if (size == 0) {
-        x1 = y1 = x2 = y2 = 0.0f;
+        bounds = new Rectangle2D.Double();
       } else {
-        double x, y;
-        // handle first node
-        Node node = NODES.get(0);
-        y1 = y2 = node.y[0];
-        x1 = x2 = node.x[0];
-        if (isClosed && (node.mask & C1_MASK) != 0) {
-          y = node.y[1];
-          x = node.x[1];
-          if (x < x1) {
-            x1 = x;
+        Node first = NODES.get(0);
+        bounds = new Rectangle2D.Double(first.x[0], first.y[0], 0, 0);
+        if (size == 1) {
+          Rectangle2D.Double b = (Rectangle2D.Double) bounds;
+          if ((first.mask & C1_MASK) != 0) b.add(first.x[1], first.y[1]);
+          if ((first.mask & C2_MASK) != 0) b.add(first.x[2], first.y[2]);
+        } else {
+          Node previous = first;
+          for (int i = 1; i < size; i++) {
+            Node current = NODES.get(i);
+            dispatchSegment(previous, current);
+            previous = current;
           }
-          if (y < y1) {
-            y1 = y;
-          }
-          if (x > x2) {
-            x2 = x;
-          }
-          if (y > y2) {
-            y2 = y;
-          }
-        }
-        if ((node.mask & C2_MASK) != 0) {
-          y = node.y[2];
-          x = node.x[2];
-          if (x < x1) {
-            x1 = x;
-          }
-          if (y < y1) {
-            y1 = y;
-          }
-          if (x > x2) {
-            x2 = x;
-          }
-          if (y > y2) {
-            y2 = y;
-          }
-        }
-        // handle last node
-        node = NODES.get(size - 1);
-        y = node.y[0];
-        x = node.x[0];
-        if (x < x1) {
-          x1 = x;
-        }
-        if (y < y1) {
-          y1 = y;
-        }
-        if (x > x2) {
-          x2 = x;
-        }
-        if (y > y2) {
-          y2 = y;
-        }
-        if ((node.mask & C1_MASK) != 0) {
-          y = node.y[1];
-          x = node.x[1];
-          if (x < x1) {
-            x1 = x;
-          }
-          if (y < y1) {
-            y1 = y;
-          }
-          if (x > x2) {
-            x2 = x;
-          }
-          if (y > y2) {
-            y2 = y;
-          }
-        }
-        if (isClosed && (node.mask & C2_MASK) != 0) {
-          y = node.y[2];
-          x = node.x[2];
-          if (x < x1) {
-            x1 = x;
-          }
-          if (y < y1) {
-            y1 = y;
-          }
-          if (x > x2) {
-            x2 = x;
-          }
-          if (y > y2) {
-            y2 = y;
-          }
-        }
-        // handle all other nodes
-        for (int i = 1, n = size - 1; i < n; i++) {
-          node = NODES.get(i);
-          y = node.y[0];
-          x = node.x[0];
-          if (x < x1) {
-            x1 = x;
-          }
-          if (y < y1) {
-            y1 = y;
-          }
-          if (x > x2) {
-            x2 = x;
-          }
-          if (y > y2) {
-            y2 = y;
-          }
-          if ((node.mask & C1_MASK) != 0) {
-            y = node.y[1];
-            x = node.x[1];
-            if (x < x1) {
-              x1 = x;
-            }
-            if (y < y1) {
-              y1 = y;
-            }
-            if (x > x2) {
-              x2 = x;
-            }
-            if (y > y2) {
-              y2 = y;
-            }
-          }
-          if ((node.mask & C2_MASK) != 0) {
-            y = node.y[2];
-            x = node.x[2];
-            if (x < x1) {
-              x1 = x;
-            }
-            if (y < y1) {
-              y1 = y;
-            }
-            if (x > x2) {
-              x2 = x;
-            }
-            if (y > y2) {
-              y2 = y;
-            }
+          if (isClosed) {
+            dispatchSegment(previous, first);
           }
         }
       }
-      bounds = new Rectangle2D.Double(x1, y1, x2 - x1, y2 - y1);
     }
     return (Rectangle2D.Double) bounds.clone();
+  }
+
+  private void dispatchSegment(Node previous, Node current) {
+    if ((previous.mask & C2_MASK) == 0) {
+      if ((current.mask & C1_MASK) == 0) {
+        expandBoundsForLinearSegment(previous.x[0], previous.y[0], current.x[0], current.y[0]);
+      } else {
+        expandBoundsForQuadSegment(
+            previous.x[0], previous.y[0], current.x[1], current.y[1], current.x[0], current.y[0]);
+      }
+    } else {
+      if ((current.mask & C1_MASK) == 0) {
+        expandBoundsForQuadSegment(
+            previous.x[0], previous.y[0], previous.x[2], previous.y[2], current.x[0], current.y[0]);
+      } else {
+        expandBoundsForCubicSegment(
+            previous.x[0],
+            previous.y[0],
+            previous.x[2],
+            previous.y[2],
+            current.x[1],
+            current.y[1],
+            current.x[0],
+            current.y[0]);
+      }
+    }
+  }
+
+  private void expandBoundsForLinearSegment(double x1, double y1, double x2, double y2) {
+    Rectangle2D.Double b = (Rectangle2D.Double) bounds;
+    b.add(x1, y1);
+    b.add(x2, y2);
+  }
+
+  private void expandBoundsForQuadSegment(
+      double x1, double y1, double cx, double cy, double x2, double y2) {
+    Rectangle2D.Double b = (Rectangle2D.Double) bounds;
+    b.add(x1, y1);
+    b.add(cx, cy);
+    b.add(x2, y2);
+  }
+
+  private void expandBoundsForCubicSegment(
+      double x1, double y1, double cx1, double cy1, double cx2, double cy2, double x2, double y2) {
+    Rectangle2D.Double b = (Rectangle2D.Double) bounds;
+    b.add(x1, y1);
+    b.add(cx1, cy1);
+    b.add(cx2, cy2);
+    b.add(x2, y2);
   }
 
   @Override
