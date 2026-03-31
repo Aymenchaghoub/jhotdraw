@@ -109,7 +109,11 @@ public abstract class AbstractApplicationModel extends AbstractBean implements A
   @Override
   public View createView() {
     try {
-      return (View) getViewClass().newInstance();
+      return (View) getViewClass().getDeclaredConstructor().newInstance();
+    } catch (NoSuchMethodException | java.lang.reflect.InvocationTargetException e) {
+      InternalError error = new InternalError("unable to create view");
+      error.initCause(e);
+      throw error;
     } catch (Exception e) {
       InternalError error = new InternalError("unable to create view");
       error.initCause(e);

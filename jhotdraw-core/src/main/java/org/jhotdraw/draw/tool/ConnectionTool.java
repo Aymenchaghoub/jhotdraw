@@ -110,7 +110,13 @@ public class ConnectionTool extends AbstractTool {
   public ConnectionTool(
       String prototypeClassName, Map<AttributeKey<?>, Object> attributes, String presentationName) {
     try {
-      this.prototype = (ConnectionFigure) Class.forName(prototypeClassName).newInstance();
+      this.prototype = (ConnectionFigure)
+          Class.forName(prototypeClassName).getDeclaredConstructor().newInstance();
+    } catch (NoSuchMethodException | java.lang.reflect.InvocationTargetException e) {
+      InternalError error =
+          new InternalError("Unable to create ConnectionFigure from " + prototypeClassName);
+      error.initCause(e);
+      throw error;
     } catch (Exception e) {
       InternalError error =
           new InternalError("Unable to create ConnectionFigure from " + prototypeClassName);

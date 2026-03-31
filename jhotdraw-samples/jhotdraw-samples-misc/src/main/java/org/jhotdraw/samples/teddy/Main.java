@@ -61,7 +61,13 @@ public class Main {
         }
       }
     }
-    Application app = (Application) Class.forName(types.get(type)).newInstance();
+    Application app;
+    try {
+      app =
+          (Application) Class.forName(types.get(type)).getDeclaredConstructor().newInstance();
+    } catch (NoSuchMethodException | java.lang.reflect.InvocationTargetException e) {
+      throw new RuntimeException("Unable to instantiate application", e);
+    }
     app.setModel(tam);
     app.launch(args);
   }

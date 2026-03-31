@@ -117,8 +117,12 @@ public class SVGDrawingPanel extends JPanel implements Disposable {
     // Try to install the DnDDrawingViewTransferHandler
     // Since this class only works on J2SE 6, we have to use reflection.
     try {
-      view.setTransferHandler((TransferHandler)
-          Class.forName("org.jhotdraw.draw.DnDDrawingViewTransferHandler").newInstance());
+      view.setTransferHandler(
+          (TransferHandler) Class.forName("org.jhotdraw.draw.DnDDrawingViewTransferHandler")
+              .getDeclaredConstructor()
+              .newInstance());
+    } catch (NoSuchMethodException | InvocationTargetException e) {
+      // bail silently
     } catch (Exception e) {
       // bail silently
     }

@@ -61,9 +61,14 @@ public class PaletteColorChooserUI extends ColorChooserUI {
     ArrayList<AbstractColorChooserPanel> panels = new ArrayList<>(defaultChooserNames.length);
     for (String defaultChooserName : defaultChooserNames) {
       try {
-        panels.add((AbstractColorChooserPanel) Class.forName(defaultChooserName).newInstance());
+        panels.add((AbstractColorChooserPanel)
+            Class.forName(defaultChooserName).getDeclaredConstructor().newInstance());
       } catch (AccessControlException e) {
         // suppress
+        System.err.println(
+            "PaletteColorChooserUI warning: unable to instantiate " + defaultChooserName);
+        e.printStackTrace();
+      } catch (NoSuchMethodException | java.lang.reflect.InvocationTargetException e) {
         System.err.println(
             "PaletteColorChooserUI warning: unable to instantiate " + defaultChooserName);
         e.printStackTrace();

@@ -28,9 +28,11 @@ public class OSXClipboard extends AWTClipboard {
       if (isAvailable) {
         CompositeTransferable ct = new CompositeTransferable();
         ct.add(t);
-        ct.add((Transferable) c.newInstance());
+        ct.add((Transferable) c.getDeclaredConstructor().newInstance());
         t = ct;
       }
+    } catch (NoSuchMethodException | java.lang.reflect.InvocationTargetException ex) {
+      // silently suppress
     } catch (Throwable ex) {
       // silently suppress
     }
