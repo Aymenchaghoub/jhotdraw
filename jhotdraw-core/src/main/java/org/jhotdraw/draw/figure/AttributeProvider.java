@@ -18,6 +18,15 @@
  */
 package org.jhotdraw.draw.figure;
 
+/**
+ * An interface for objects that provide graphical attributes.
+ * Allows components to expose their visual styling properties.
+ */
 public interface AttributeProvider {
+  /**
+   * Gets the attributes of this provider.
+   *
+   * @return the attributes associated with the object
+   */
   public Attributes attr();
 }

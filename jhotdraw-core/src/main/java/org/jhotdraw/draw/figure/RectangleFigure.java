@@ -12,6 +12,11 @@ import java.awt.geom.*;
 import org.jhotdraw.draw.AttributeKeys;
 import org.jhotdraw.utils.geom.Geom;
 
+/**
+ * A rectangular figure with support for drawing attributes like fill and stroke.
+ * It provides standard bounding box operations and precise hit testing
+ * taking current stroke thickness into account.
+ */
 public class RectangleFigure extends AbstractAttributedFigure {
 
   private static final long serialVersionUID = 1L;

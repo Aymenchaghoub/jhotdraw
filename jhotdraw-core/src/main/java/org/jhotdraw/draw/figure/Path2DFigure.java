@@ -20,6 +20,11 @@ import org.jhotdraw.draw.handle.TrackingHandle;
 import org.jhotdraw.utils.geom.GrowStroke;
 import org.jhotdraw.utils.geom.path.MutablePath2D;
 
+/**
+ * A figure that represents a generic two-dimensional geometric path.
+ * It provides rendering capabilities and handles for editing individual path nodes,
+ * but does not support connections like a typical line figure.
+ */
 public class Path2DFigure extends AbstractAttributedFigure {
 
   private static final long serialVersionUID = 1L;
@@ -34,6 +39,13 @@ public class Path2DFigure extends AbstractAttributedFigure {
     return path.contains(p);
   }
 
+  /**
+   * Creates handles to manipulate the figure.
+   * For detail level 1, it provides tracking handles for each node in the path.
+   *
+   * @param detailLevel the level of detail for the handles
+   * @return a collection of handles for the figure
+   */
   @Override
   public Collection<Handle> createHandles(int detailLevel) {
     if (detailLevel == -1 || detailLevel == 0) {

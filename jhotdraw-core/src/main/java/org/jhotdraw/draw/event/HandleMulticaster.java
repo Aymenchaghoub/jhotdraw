@@ -15,6 +15,10 @@ import org.jhotdraw.draw.DrawingView;
 import org.jhotdraw.draw.handle.Handle;
 import org.jhotdraw.utils.util.ReversedList;
 
+/**
+ * Forwards event and drawing calls to a collection of multiple handles.
+ * This permits treating a group of dynamically managed handles as a single handle entity.
+ */
 public class HandleMulticaster {
 
   private List<Handle> handles;
@@ -28,6 +32,11 @@ public class HandleMulticaster {
     this.handles = new ArrayList<>(handles);
   }
 
+  /**
+   * Draws all handles in the multicaster.
+   *
+   * @param g the graphics context to draw into
+   */
   public void draw(java.awt.Graphics2D g) {
     for (Handle h : handles) {
       h.draw(g);
@@ -55,6 +64,14 @@ public class HandleMulticaster {
     }
   }
 
+  /**
+   * Tracks the end of a user interaction by delegating to all handles in reverse order.
+   *
+   * @param current the current point of the mouse
+   * @param anchor the anchor point where the interaction started
+   * @param modifiersEx the extended modifiers of the mouse event
+   * @param view the drawing view where the interaction takes place
+   */
   public void trackEnd(Point current, Point anchor, int modifiersEx, DrawingView view) {
     for (Handle h : new ReversedList<>(handles)) {
       h.trackEnd(current, anchor, modifiersEx);

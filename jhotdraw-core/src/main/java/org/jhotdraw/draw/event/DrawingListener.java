@@ -21,7 +21,15 @@ package org.jhotdraw.draw.event;
 
 import java.util.EventListener;
 
+/**
+ * Listener interface for observing changes in a drawing.
+ * This includes addition, removal, and modification of figures,
+ * as well as changes to the drawing's overall graphical attributes.
+ */
 public interface DrawingListener extends EventListener {
+  /**
+   * Invoked when a figure is added to the drawing.
+   */
   void figureAdded(DrawingEvent e);
 
   void figureRemoved(DrawingEvent e);

@@ -19,6 +19,11 @@ import org.jhotdraw.draw.DrawingView;
 import org.jhotdraw.draw.figure.Figure;
 import org.jhotdraw.utils.util.ResourceBundleUtil;
 
+/**
+ * An action that changes the z-order of the currently selected figures,
+ * moving them to the very back of the drawing behind all other figures.
+ * Supports undo and redo operations.
+ */
 public class SendToBackAction extends AbstractSelectedAction {
 
   private static final long serialVersionUID = 1L;
@@ -59,6 +64,12 @@ public class SendToBackAction extends AbstractSelectedAction {
     });
   }
 
+  /**
+   * Moves a collection of figures to the back of the given drawing view.
+   *
+   * @param view the drawing view containing the figures
+   * @param figures the collection of figures to move to the back
+   */
   public static void sendToBack(DrawingView view, Collection<Figure> figures) {
     Drawing drawing = view.getDrawing();
     for (Figure figure : figures) { // XXX Shouldn't the figures be sorted here back to front?
