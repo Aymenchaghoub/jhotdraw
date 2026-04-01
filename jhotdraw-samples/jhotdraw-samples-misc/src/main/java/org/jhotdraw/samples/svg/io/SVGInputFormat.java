@@ -60,7 +60,9 @@ import org.jhotdraw.utils.io.StreamPosTokenizer;
 import org.jhotdraw.utils.util.LocaleUtil;
 import org.jhotdraw.xml.css.CSSParser;
 import org.jhotdraw.xml.css.StyleManager;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -213,6 +215,7 @@ public class SVGInputFormat implements InputFormat {
     long start;
     this.figures = new LinkedList<Figure>();
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+    factory.setNamespaceAware(true);
     DocumentBuilder builder;
     try {
       builder = factory.newDocumentBuilder();
@@ -221,40 +224,16 @@ public class SVGInputFormat implements InputFormat {
       throw new IOException(ex);
     }
     try {
-      document = (Element) builder.parse(in);
+      Document xmlDocument = builder.parse(in);
+      document = xmlDocument.getDocumentElement();
     } catch (SAXException ex) {
       Logger.getLogger(SVGInputFormat.class.getName()).log(Level.SEVERE, null, ex);
       throw new IOException(ex);
     }
-    // Search for the first 'svg' element in the XML document
-    // in preorder sequence
-    Element svg = document;
-    Stack<Element> stack = new Stack<Element>();
-    // LinkedList<Element> ll = new LinkedList<Element>();
-    // ll.add(document);
-    stack.push((Element) document.getFirstChild());
-    while (!stack.empty() && stack.peek().getNextSibling() != null) {
-      Element iter = stack.peek();
-      Element node = (Element) iter.getNextSibling();
-      stack.set(stack.indexOf(iter), node);
-      Element children = (Element) node.getFirstChild();
-      if (iter.getNextSibling() == null) {
-        stack.pop();
-      }
-      if (children != null && children.getNextSibling() != null) {
-        stack.push(children);
-      }
-      if (node.getLocalName() != null
-          && node.getLocalName().equals("svg")
-          && (node.getPrefix() == null || node.getPrefix().equals(SVG_NAMESPACE))) {
-        svg = node;
-        break;
-      }
-    }
-    if (svg.getLocalName() == null
-        || !svg.getLocalName().equals("svg")
-        || (svg.getPrefix() != null && !svg.getPrefix().equals(SVG_NAMESPACE))) {
-      throw new IOException("'svg' element expected: " + svg.getLocalName());
+    // Search for the first 'svg' element in the XML document in preorder sequence.
+    Element svg = findFirstSvgElement(document);
+    if (svg == null) {
+      throw new IOException("'svg' element expected: " + document.getLocalName());
     }
     // long end1 = System.currentTimeMillis();
     // Flatten CSS Styles
@@ -284,6 +263,29 @@ public class SVGInputFormat implements InputFormat {
     elementObjects = null;
     viewportStack = null;
     styleManager = null;
+  }
+
+  private Element findFirstSvgElement(Element elem) {
+    if (isSvgElement(elem)) {
+      return elem;
+    }
+    NodeList list = elem.getChildNodes();
+    for (int i = 0; i < list.getLength(); i++) {
+      Node node = list.item(i);
+      if (node instanceof Element) {
+        Element found = findFirstSvgElement((Element) node);
+        if (found != null) {
+          return found;
+        }
+      }
+    }
+    return null;
+  }
+
+  private boolean isSvgElement(Element elem) {
+    return elem != null
+        && "svg".equals(elem.getLocalName())
+        && (elem.getPrefix() == null || SVG_NAMESPACE.equals(elem.getPrefix()));
   }
 
   private void initStorageContext(Element root) {
@@ -1409,24 +1411,28 @@ public class SVGInputFormat implements InputFormat {
 
   /** Reads an attribute that is inherited. */
   private String readInheritAttribute(Element elem, String attributeName, String defaultValue) {
+    Element parent = getParentElement(elem);
     if (elem.hasAttributeNS(SVG_NAMESPACE, attributeName)) {
       String value = elem.getAttributeNS(SVG_NAMESPACE, attributeName);
       if ("inherit".equals(value)) {
-        return readInheritAttribute((Element) elem.getParentNode(), attributeName, defaultValue);
+        return parent == null
+            ? defaultValue
+            : readInheritAttribute(parent, attributeName, defaultValue);
       } else {
         return value;
       }
     } else if (elem.hasAttribute(attributeName)) {
       String value = elem.getAttribute(attributeName);
       if ("inherit".equals(value)) {
-        return readInheritAttribute((Element) elem.getParentNode(), attributeName, defaultValue);
+        return parent == null
+            ? defaultValue
+            : readInheritAttribute(parent, attributeName, defaultValue);
       } else {
         return value;
       }
-    } else if (elem.getParentNode() != null
-        && (elem.getParentNode().getPrefix() == null
-            || elem.getParentNode().getPrefix().equals(SVG_NAMESPACE))) {
-      return readInheritAttribute((Element) elem.getParentNode(), attributeName, defaultValue);
+    } else if (parent != null
+        && (parent.getPrefix() == null || parent.getPrefix().equals(SVG_NAMESPACE))) {
+      return readInheritAttribute(parent, attributeName, defaultValue);
     } else {
       return defaultValue;
     }
@@ -1439,23 +1445,24 @@ public class SVGInputFormat implements InputFormat {
   private String readInheritColorAttribute(
       Element elem, String attributeName, String defaultValue) {
     String value = null;
+    Element parent = getParentElement(elem);
     if (elem.hasAttributeNS(SVG_NAMESPACE, attributeName)) {
       value = elem.getAttributeNS(SVG_NAMESPACE, attributeName);
       if ("inherit".equals(value)) {
-        return readInheritColorAttribute(
-            (Element) elem.getParentNode(), attributeName, defaultValue);
+        return parent == null
+            ? defaultValue
+            : readInheritColorAttribute(parent, attributeName, defaultValue);
       }
     } else if (elem.hasAttribute(attributeName)) {
       value = elem.getAttribute(attributeName);
       if ("inherit".equals(value)) {
-        return readInheritColorAttribute(
-            (Element) elem.getParentNode(), attributeName, defaultValue);
+        return parent == null
+            ? defaultValue
+            : readInheritColorAttribute(parent, attributeName, defaultValue);
       }
-    } else if (elem.getParentNode() != null
-        && (elem.getParentNode().getPrefix() == null
-            || elem.getParentNode().getPrefix().equals(SVG_NAMESPACE))) {
-      value =
-          readInheritColorAttribute((Element) elem.getParentNode(), attributeName, defaultValue);
+    } else if (parent != null
+        && (parent.getPrefix() == null || parent.getPrefix().equals(SVG_NAMESPACE))) {
+      value = readInheritColorAttribute(parent, attributeName, defaultValue);
     } else {
       value = defaultValue;
     }
@@ -1476,32 +1483,34 @@ public class SVGInputFormat implements InputFormat {
   private double readInheritFontSizeAttribute(
       Element elem, String attributeName, String defaultValue) throws IOException {
     String value = null;
+    Element parent = getParentElement(elem);
     if (elem.hasAttributeNS(SVG_NAMESPACE, attributeName)) {
       value = elem.getAttributeNS(SVG_NAMESPACE, attributeName);
     } else if (elem.hasAttribute(attributeName)) {
       value = elem.getAttribute(attributeName);
-    } else if (elem.getParentNode() != null
-        && (elem.getParentNode().getPrefix() == null
-            || elem.getParentNode().getPrefix().equals(SVG_NAMESPACE))) {
-      return readInheritFontSizeAttribute(
-          (Element) elem.getParentNode(), attributeName, defaultValue);
+    } else if (parent != null
+        && (parent.getPrefix() == null || parent.getPrefix().equals(SVG_NAMESPACE))) {
+      return readInheritFontSizeAttribute(parent, attributeName, defaultValue);
     } else {
       value = defaultValue;
     }
     if ("inherit".equals(value)) {
-      return readInheritFontSizeAttribute(
-          (Element) elem.getParentNode(), attributeName, defaultValue);
+      return parent == null
+          ? toNumber(elem, defaultValue)
+          : readInheritFontSizeAttribute(parent, attributeName, defaultValue);
     } else if (SVG_ABSOLUTE_FONT_SIZES.containsKey(value)) {
       return SVG_ABSOLUTE_FONT_SIZES.get(value);
     } else if (SVG_RELATIVE_FONT_SIZES.containsKey(value)) {
       return SVG_RELATIVE_FONT_SIZES.get(value)
-          * readInheritFontSizeAttribute(
-              (Element) elem.getParentNode(), attributeName, defaultValue);
+          * (parent == null
+              ? toNumber(elem, defaultValue)
+              : readInheritFontSizeAttribute(parent, attributeName, defaultValue));
     } else if (value.endsWith("%")) {
       double factor = Double.valueOf(value.substring(0, value.length() - 1));
       return factor
-          * readInheritFontSizeAttribute(
-              (Element) elem.getParentNode(), attributeName, defaultValue);
+          * (parent == null
+              ? toNumber(elem, defaultValue)
+              : readInheritFontSizeAttribute(parent, attributeName, defaultValue));
     } else {
       // return toScaledNumber(elem, value);
       return toNumber(elem, value);
@@ -1510,23 +1519,28 @@ public class SVGInputFormat implements InputFormat {
 
   /** Reads an attribute that is not inherited, unless its value is "inherit". */
   private String readAttribute(Element elem, String attributeName, String defaultValue) {
+    Element parent = getParentElement(elem);
     if (elem.hasAttributeNS(SVG_NAMESPACE, attributeName)) {
       String value = elem.getAttributeNS(SVG_NAMESPACE, attributeName);
       if ("inherit".equals(value)) {
-        return readAttribute((Element) elem.getParentNode(), attributeName, defaultValue);
+        return parent == null ? defaultValue : readAttribute(parent, attributeName, defaultValue);
       } else {
         return value;
       }
     } else if (elem.hasAttribute(attributeName)) {
       String value = elem.getAttribute(attributeName);
       if ("inherit".equals(value)) {
-        return readAttribute((Element) elem.getParentNode(), attributeName, defaultValue);
+        return parent == null ? defaultValue : readAttribute(parent, attributeName, defaultValue);
       } else {
         return value;
       }
     } else {
       return defaultValue;
     }
+  }
+
+  private Element getParentElement(Element elem) {
+    return elem.getParentNode() instanceof Element ? (Element) elem.getParentNode() : null;
   }
 
   /** Returns a value as a width. http://www.w3.org/TR/SVGMobile12/types.html#DataTypeLength */
