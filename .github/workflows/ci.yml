@@ -1,0 +1,50 @@
+name: CI Java 17 Multi-Module
+
+on:
+  push:
+    branches: ["develop"]
+  pull_request:
+    branches: ["develop"]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Maven clean install
+        run: mvn -B clean install
+
+      - name: Maven test (with JaCoCo agent)
+        run: mvn -B org.jacoco:jacoco-maven-plugin:prepare-agent test
+
+      - name: Generate JaCoCo report
+        run: mvn -B org.jacoco:jacoco-maven-plugin:report
+
+      - name: Upload JaCoCo XML reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-xml
+          path: |
+            **/target/site/jacoco/jacoco.xml
+          if-no-files-found: warn
+
+      - name: Upload JaCoCo HTML reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-html
+          path: |
+            **/target/site/jacoco/**
+          if-no-files-found: warn
