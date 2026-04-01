@@ -21,20 +21,75 @@
 * restructured project layout
   * introduced submodules
 
-## Quickstart
+## Getting Started
 
-This projects jars are not yet published to maven central or GitHub packages. To use those you first need to build it with **maven** using: `mv clean install`. Now all jars are published to your local maven repository. And you can include those artifacts using e.g.
+### Prerequisites
+
+* Java 17
+* Maven
+
+### Setup
+
+```bash
+git clone https://github.com/wumpz/jhotdraw.git
+cd jhotdraw
+```
+
+This project's artifacts are not published to Maven Central yet.
+Build locally first so all modules are installed in your local Maven repository.
+
+## Build
+
+```bash
+mvn clean install
+mvn test
+```
+
+## Architecture Overview
+
+JHotDraw is a multi-module Maven project. The key modules are:
+
+* **jhotdraw-core**: figure model, drawing infrastructure, tools, and editing behavior
+* **jhotdraw-gui**: reusable Swing components and UI integration
+* **jhotdraw-io**: import/export and XML/DOM-based persistence
+* **jhotdraw-samples**: runnable sample applications showing usage patterns
+
+## Project Structure
+
+```text
+jhotdraw/
+├── jhotdraw-core/
+├── jhotdraw-gui/
+├── jhotdraw-io/
+├── jhotdraw-samples/
+│   ├── jhotdraw-samples-mini/
+│   └── jhotdraw-samples-misc/
+└── pom.xml
+```
+
+## Simple Example
+
+Add a dependency to your application:
 
 ```xml
 <dependency>
   <groupId>org.jhotdraw</groupId>
   <artifactId>jhotdraw-core</artifactId>
-  <version>10.0-SNAPSHOT</version>
+  <version>10.3-SNAPSHOT</version>
 </dependency>
 ```
 
+Minimal code snippet:
+
+```java
+Drawing drawing = new DefaultDrawing();
+RectangleFigure rectangle = new RectangleFigure();
+rectangle.setBounds(new Point2D.Double(10, 10), new Point2D.Double(140, 90));
+drawing.add(rectangle);
+```
+
 In module `jhotdraw-samples-mini` are small examples mostly highlighting one aspect of JHotdraw usage.
-Additional to that are in module `jhotdraw-samples-misc` more sophisticated examples of using this library.
+Additionally, module `jhotdraw-samples-misc` contains more sophisticated examples.
 
 
 ## License
