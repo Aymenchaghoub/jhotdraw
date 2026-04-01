@@ -38,7 +38,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.Set;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -93,13 +92,9 @@ public class DefaultDrawingView extends JComponent implements DrawingView, Edita
   private Drawing drawing;
 
   /**
-   * Holds the selected figures in an ordered put. The ordering reflects the sequence that was used
-   * to select the figures.
+   * Selection model managing the Set of selected figures.
    */
-  private final Set<Figure> SELECTED_FIGURES = new LinkedHashSet<>();
-
-  private final Set<Figure> UNMODIFIABLE_SELECTED_FIGURES =
-      Collections.unmodifiableSet(SELECTED_FIGURES);
+  private final FigureSelectionModel selectionModel;
 
   private java.util.List<Handle> selectionHandles = new ArrayList<>();
   private boolean isConstrainerVisible = false;
@@ -147,6 +142,25 @@ public class DefaultDrawingView extends JComponent implements DrawingView, Edita
 
   /** Creates new instance. */
   public DefaultDrawingView() {
+    selectionModel = new DefaultFigureSelectionModel(this);
+    selectionModel.addFigureSelectionListener(new FigureSelectionListener() {
+      @Override
+      public void selectionChanged(FigureSelectionEvent evt) {
+        for (Figure f : evt.getOldSelection()) {
+          f.removeFigureListener(handleInvalidator);
+        }
+        for (Figure f : evt.getNewSelection()) {
+          f.addFigureListener(handleInvalidator);
+        }
+        invalidateHandles();
+        repaint();
+        firePropertyChange(
+            EditableComponent.SELECTION_EMPTY_PROPERTY,
+            evt.getOldSelection().isEmpty(),
+            evt.getNewSelection().isEmpty());
+      }
+    });
+
     initComponents();
     eventHandler = createEventHandler();
     setToolTipText("dummy"); // Set a dummy tool tip text to turn tooltips on
@@ -243,7 +257,7 @@ public class DefaultDrawingView extends JComponent implements DrawingView, Edita
 
   @Override
   public boolean isSelectionEmpty() {
-    return SELECTED_FIGURES.isEmpty();
+    return selectionModel.isSelectionEmpty();
   }
 
   @Override
@@ -707,75 +721,19 @@ public class DefaultDrawingView extends JComponent implements DrawingView, Edita
   /** Adds a figure to the current selection. */
   @Override
   public void addToSelection(Figure figure) {
-    Set<Figure> oldSelection = new HashSet<>(SELECTED_FIGURES);
-    if (SELECTED_FIGURES.add(figure)) {
-      figure.addFigureListener(handleInvalidator);
-      Set<Figure> newSelection = new HashSet<>(SELECTED_FIGURES);
-      Rectangle invalidatedArea = null;
-      if (handlesAreValid && getEditor() != null) {
-        for (Handle h : figure.createHandles(detailLevel)) {
-          h.setView(this);
-          selectionHandles.add(h);
-          h.addHandleListener(eventHandler);
-          if (invalidatedArea == null) {
-            invalidatedArea = h.getDrawingArea();
-          } else {
-            invalidatedArea.add(h.getDrawingArea());
-          }
-        }
-      }
-      fireSelectionChanged(oldSelection, newSelection);
-      if (invalidatedArea != null) {
-        repaint(invalidatedArea);
-      }
-    }
+    selectionModel.addToSelection(figure);
   }
 
   /** Adds a collection of figures to the current selection. */
   @Override
   public void addToSelection(Collection<Figure> figures) {
-    Set<Figure> oldSelection = new HashSet<>(SELECTED_FIGURES);
-    Set<Figure> newSelection = new HashSet<>(SELECTED_FIGURES);
-    boolean selectionChanged = false;
-    Rectangle invalidatedArea = null;
-    for (Figure figure : figures) {
-      if (SELECTED_FIGURES.add(figure)) {
-        selectionChanged = true;
-        newSelection.add(figure);
-        figure.addFigureListener(handleInvalidator);
-        if (handlesAreValid && getEditor() != null) {
-          for (Handle h : figure.createHandles(detailLevel)) {
-            h.setView(this);
-            selectionHandles.add(h);
-            h.addHandleListener(eventHandler);
-            if (invalidatedArea == null) {
-              invalidatedArea = h.getDrawingArea();
-            } else {
-              invalidatedArea.add(h.getDrawingArea());
-            }
-          }
-        }
-      }
-    }
-    if (selectionChanged) {
-      fireSelectionChanged(oldSelection, newSelection);
-      if (invalidatedArea != null) {
-        repaint(invalidatedArea);
-      }
-    }
+    selectionModel.addToSelection(figures);
   }
 
   /** Removes a figure from the selection. */
   @Override
   public void removeFromSelection(Figure figure) {
-    Set<Figure> oldSelection = new HashSet<>(SELECTED_FIGURES);
-    if (SELECTED_FIGURES.remove(figure)) {
-      Set<Figure> newSelection = new HashSet<>(SELECTED_FIGURES);
-      invalidateHandles();
-      figure.removeFigureListener(handleInvalidator);
-      fireSelectionChanged(oldSelection, newSelection);
-      repaint();
-    }
+    selectionModel.removeFromSelection(figure);
   }
 
   /**
@@ -784,11 +742,7 @@ public class DefaultDrawingView extends JComponent implements DrawingView, Edita
    */
   @Override
   public void toggleSelection(Figure figure) {
-    if (SELECTED_FIGURES.contains(figure)) {
-      removeFromSelection(figure);
-    } else {
-      addToSelection(figure);
-    }
+    selectionModel.toggleSelection(figure);
   }
 
   @Override
@@ -800,35 +754,25 @@ public class DefaultDrawingView extends JComponent implements DrawingView, Edita
   /** Selects all selectable figures. */
   @Override
   public void selectAll() {
-    Set<Figure> oldSelection = new HashSet<>(SELECTED_FIGURES);
-    SELECTED_FIGURES.clear();
+    Set<Figure> selectable = new HashSet<>();
     for (Figure figure : drawing.getChildren()) {
       if (figure.isSelectable()) {
-        SELECTED_FIGURES.add(figure);
+        selectable.add(figure);
       }
     }
-    Set<Figure> newSelection = new HashSet<>(SELECTED_FIGURES);
-    invalidateHandles();
-    fireSelectionChanged(oldSelection, newSelection);
-    repaint();
+    selectionModel.setSelection(selectable);
   }
 
   /** Clears the current selection. */
   @Override
   public void clearSelection() {
-    if (getSelectionCount() > 0) {
-      Set<Figure> oldSelection = new HashSet<>(SELECTED_FIGURES);
-      SELECTED_FIGURES.clear();
-      Set<Figure> newSelection = new HashSet<>(SELECTED_FIGURES);
-      invalidateHandles();
-      fireSelectionChanged(oldSelection, newSelection);
-    }
+    selectionModel.clearSelection();
   }
 
   /** Test whether a given figure is selected. */
   @Override
   public boolean isFigureSelected(Figure checkFigure) {
-    return SELECTED_FIGURES.contains(checkFigure);
+    return selectionModel.isFigureSelected(checkFigure);
   }
 
   /**
@@ -836,13 +780,13 @@ public class DefaultDrawingView extends JComponent implements DrawingView, Edita
    */
   @Override
   public Set<Figure> getSelectedFigures() {
-    return UNMODIFIABLE_SELECTED_FIGURES;
+    return selectionModel.getSelectedFigures();
   }
 
   /** Gets the number of selected figures. */
   @Override
   public int getSelectionCount() {
-    return SELECTED_FIGURES.size();
+    return selectionModel.getSelectionCount();
   }
 
   /** Gets the currently active selection handles. */
@@ -988,38 +932,12 @@ public class DefaultDrawingView extends JComponent implements DrawingView, Edita
 
   @Override
   public void addFigureSelectionListener(FigureSelectionListener fsl) {
-    listenerList.add(FigureSelectionListener.class, fsl);
+    selectionModel.addFigureSelectionListener(fsl);
   }
 
   @Override
   public void removeFigureSelectionListener(FigureSelectionListener fsl) {
-    listenerList.remove(FigureSelectionListener.class, fsl);
-  }
-
-  /**
-   * Notify all listenerList that have registered interest for notification on this event type. Also
-   * notify listeners who listen for {@link EditableComponent#SELECTION_EMPTY_PROPERTY}.
-   */
-  protected void fireSelectionChanged(Set<Figure> oldValue, Set<Figure> newValue) {
-    if (listenerList.getListenerCount() > 0) {
-      FigureSelectionEvent event = null;
-      // Notify all listeners that have registered interest for
-      // Guaranteed to return a non-null array
-      Object[] listeners = listenerList.getListenerList();
-      // Process the listeners last to first, notifying
-      // those that are interested in this event
-      for (int i = listeners.length - 2; i >= 0; i -= 2) {
-        if (listeners[i] == FigureSelectionListener.class) {
-          // Lazily create the event:
-          if (event == null) {
-            event = new FigureSelectionEvent(this, oldValue, newValue);
-          }
-          ((FigureSelectionListener) listeners[i + 1]).selectionChanged(event);
-        }
-      }
-    }
-    firePropertyChange(
-        EditableComponent.SELECTION_EMPTY_PROPERTY, oldValue.isEmpty(), newValue.isEmpty());
+    selectionModel.removeFigureSelectionListener(fsl);
   }
 
   protected void invalidateDimension() {
