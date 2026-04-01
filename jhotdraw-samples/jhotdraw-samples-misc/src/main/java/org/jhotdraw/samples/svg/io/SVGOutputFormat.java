@@ -34,7 +34,6 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import org.jhotdraw.datatransfer.InputStreamTransferable;
 import org.jhotdraw.draw.*;
-import org.jhotdraw.draw.AttributeKeys.WindingRule;
 import org.jhotdraw.draw.figure.BezierFigure;
 import org.jhotdraw.draw.figure.Figure;
 import org.jhotdraw.draw.io.OutputFormat;
@@ -70,26 +69,14 @@ public class SVGOutputFormat implements OutputFormat {
   /** Maps gradients to ID's. We use this, so that we need to store the same gradient only once. */
   private HashMap<Gradient, String> gradientToIDMap;
 
+  /** Delegates figure serialization to specialized writers. */
+  private final java.util.List<SvgFigureWriter> figureWriters;
+
+  /** Encapsulates serialization of shared SVG attributes. */
+  private final SvgAttributeWriter attributeWriter;
+
   /** Set this to true for pretty printing. */
   private boolean isPrettyPrint;
-
-  private static final HashMap<Integer, String> STROKE_LINEJOIN;
-
-  static {
-    STROKE_LINEJOIN = new HashMap<Integer, String>();
-    STROKE_LINEJOIN.put(BasicStroke.JOIN_MITER, "miter");
-    STROKE_LINEJOIN.put(BasicStroke.JOIN_ROUND, "round");
-    STROKE_LINEJOIN.put(BasicStroke.JOIN_BEVEL, "bevel");
-  }
-
-  private static final HashMap<Integer, String> STROKE_LINECAP;
-
-  static {
-    STROKE_LINECAP = new HashMap<Integer, String>();
-    STROKE_LINECAP.put(BasicStroke.CAP_BUTT, "butt");
-    STROKE_LINECAP.put(BasicStroke.CAP_ROUND, "round");
-    STROKE_LINECAP.put(BasicStroke.CAP_SQUARE, "square");
-  }
 
   /**
    * Set this variable to true if values should be written with float precision instead with double
@@ -98,7 +85,10 @@ public class SVGOutputFormat implements OutputFormat {
    */
   private static final boolean IS_FLOAT_PRECISION = true;
 
-  public SVGOutputFormat() {}
+  public SVGOutputFormat() {
+    figureWriters = DefaultSvgFigureWriters.createWriters();
+    attributeWriter = new SvgAttributeWriter(this::resolveGradientId);
+  }
 
   public javax.swing.filechooser.FileFilter getFileFilter() {
     return new FileNameExtensionFilter("Scalable Vector Graphics (SVG)", "svg");
@@ -127,54 +117,13 @@ public class SVGOutputFormat implements OutputFormat {
       parent.appendChild(aElement);
       parent = aElement;
     }
-    // Write the actual element
-    if (f instanceof SVGEllipseFigure) {
-      SVGEllipseFigure ellipse = (SVGEllipseFigure) f;
-      if (ellipse.getWidth() == ellipse.getHeight()) {
-        writeCircleElement(parent, ellipse);
-      } else {
-        writeEllipseElement(parent, ellipse);
+    for (SvgFigureWriter writer : figureWriters) {
+      if (writer.supports(f)) {
+        writer.write(this, parent, f);
+        return;
       }
-    } else if (f instanceof SVGGroupFigure) {
-      writeGElement(parent, (SVGGroupFigure) f);
-    } else if (f instanceof SVGImageFigure) {
-      writeImageElement(parent, (SVGImageFigure) f);
-    } else if (f instanceof SVGPathFigure) {
-      SVGPathFigure path = (SVGPathFigure) f;
-      if (path.getChildCount() == 1) {
-        BezierFigure bezier = (BezierFigure) path.getChild(0);
-        boolean isLinear = true;
-        for (int i = 0, n = bezier.getNodeCount(); i < n; i++) {
-          if (bezier.getNode(i).getMask() != 0) {
-            isLinear = false;
-            break;
-          }
-        }
-        if (isLinear) {
-          if (bezier.isClosed()) {
-            writePolygonElement(parent, path);
-          } else {
-            if (bezier.getNodeCount() == 2) {
-              writeLineElement(parent, path);
-            } else {
-              writePolylineElement(parent, path);
-            }
-          }
-        } else {
-          writePathElement(parent, path);
-        }
-      } else {
-        writePathElement(parent, path);
-      }
-    } else if (f instanceof SVGRectFigure) {
-      writeRectElement(parent, (SVGRectFigure) f);
-    } else if (f instanceof SVGTextFigure) {
-      writeTextElement(parent, (SVGTextFigure) f);
-    } else if (f instanceof SVGTextAreaFigure) {
-      writeTextAreaElement(parent, (SVGTextAreaFigure) f);
-    } else {
-      System.out.println("Unable to write: " + f);
     }
+    System.out.println("Unable to write: " + f);
   }
 
   protected void writeCircleElement(Element parent, SVGEllipseFigure f) throws IOException {
@@ -272,6 +221,48 @@ public class SVGOutputFormat implements OutputFormat {
       elem.appendChild(stop);
     }
     return elem;
+  }
+
+  private String resolveGradientId(Gradient gradient) throws IOException {
+    if (gradientToIDMap.containsKey(gradient)) {
+      return gradientToIDMap.get(gradient);
+    }
+
+    Element gradientElem;
+    if (gradient instanceof LinearGradient) {
+      LinearGradient lg = (LinearGradient) gradient;
+      gradientElem = createLinearGradient(
+          document,
+          lg.getX1(),
+          lg.getY1(),
+          lg.getX2(),
+          lg.getY2(),
+          lg.getStopOffsets(),
+          lg.getStopColors(),
+          lg.getStopOpacities(),
+          lg.isRelativeToFigureBounds(),
+          lg.getTransform());
+    } else {
+      RadialGradient rg = (RadialGradient) gradient;
+      gradientElem = createRadialGradient(
+          document,
+          rg.getCX(),
+          rg.getCY(),
+          rg.getFX(),
+          rg.getFY(),
+          rg.getR(),
+          rg.getStopOffsets(),
+          rg.getStopColors(),
+          rg.getStopOpacities(),
+          rg.isRelativeToFigureBounds(),
+          rg.getTransform());
+    }
+
+    String id = getId(gradientElem);
+    gradientElem.setAttributeNS("xml", "id", id);
+    defs.appendChild(gradientElem);
+    gradientToIDMap.put(gradient, id);
+    return id;
   }
 
   protected void writeEllipseElement(Element parent, SVGEllipseFigure f) throws IOException {
@@ -601,259 +592,14 @@ public class SVGOutputFormat implements OutputFormat {
    */
   protected void writeShapeAttributes(Element elem, Map<AttributeKey<?>, Object> m)
       throws IOException {
-    Color color;
-    String value;
-    int intValue;
-    // 'color'
-    // Value:   <color> | inherit
-    // Initial:    depends on user agent
-    // Applies to:   None. Indirectly affects other properties via currentColor
-    // Inherited:    yes
-    // Percentages:    N/A
-    // Media:    visual
-    // Animatable:    yes
-    // Computed value:    Specified <color> value, except inherit
-    // Nothing to do: Attribute 'color' is not needed.
-    // 'color-rendering'
-    // Value:    auto | optimizeSpeed | optimizeQuality | inherit
-    // Initial:    auto
-    // Applies to:    container elements , graphics elements and 'animateColor'
-    // Inherited:    yes
-    // Percentages:    N/A
-    // Media:    visual
-    // Animatable:    yes
-    // Computed value:    Specified value, except inherit
-    // Nothing to do: Attribute 'color-rendering' is not needed.
-    // 'fill'
-    // Value:   <paint> | inherit (See Specifying paint)
-    // Initial:    black
-    // Applies to:    shapes and text content elements
-    // Inherited:    yes
-    // Percentages:    N/A
-    // Media:    visual
-    // Animatable:    yes
-    // Computed value:    "none", system paint, specified <color> value or absolute IRI
-    Gradient gradient = FILL_GRADIENT.get(m);
-    if (gradient != null) {
-      String id;
-      if (gradientToIDMap.containsKey(gradient)) {
-        id = gradientToIDMap.get(gradient);
-      } else {
-        Element gradientElem;
-        if (gradient instanceof LinearGradient) {
-          LinearGradient lg = (LinearGradient) gradient;
-          gradientElem = createLinearGradient(
-              document,
-              lg.getX1(),
-              lg.getY1(),
-              lg.getX2(),
-              lg.getY2(),
-              lg.getStopOffsets(),
-              lg.getStopColors(),
-              lg.getStopOpacities(),
-              lg.isRelativeToFigureBounds(),
-              lg.getTransform());
-        } else /*if (gradient instanceof RadialGradient)*/ {
-          RadialGradient rg = (RadialGradient) gradient;
-          gradientElem = createRadialGradient(
-              document,
-              rg.getCX(),
-              rg.getCY(),
-              rg.getFX(),
-              rg.getFY(),
-              rg.getR(),
-              rg.getStopOffsets(),
-              rg.getStopColors(),
-              rg.getStopOpacities(),
-              rg.isRelativeToFigureBounds(),
-              rg.getTransform());
-        }
-        id = getId(gradientElem);
-        gradientElem.setAttributeNS("xml", "id", id);
-        defs.appendChild(gradientElem);
-        gradientToIDMap.put(gradient, id);
-      }
-      writeAttribute(elem, "fill", "url(#" + id + ")", "#000");
-    } else {
-      writeAttribute(elem, "fill", toColor(FILL_COLOR.get(m)), "#000");
-    }
-    // 'fill-opacity'
-    // Value:    <opacity-value> | inherit
-    // Initial:    1
-    // Applies to:    shapes and text content elements
-    // Inherited:    yes
-    // Percentages:    N/A
-    // Media:    visual
-    // Animatable:    yes
-    // Computed value:    Specified value, except inherit
-    writeAttribute(elem, "fill-opacity", FILL_OPACITY.get(m), 1d);
-    // 'fill-rule'
-    // Value:  nonzero | evenodd | inherit
-    // Initial:   nonzero
-    // Applies to:    shapes and text content elements
-    // Inherited:    yes
-    // Percentages:    N/A
-    // Media:    visual
-    // Animatable:    yes
-    // Computed value:    Specified value, except inherit
-    if (WINDING_RULE.get(m) != WindingRule.NON_ZERO) {
-      writeAttribute(elem, "fill-rule", "evenodd", "nonzero");
-    }
-    // 'stroke'
-    // Value:   <paint> | inherit (See Specifying paint)
-    // Initial:    none
-    // Applies to:    shapes and text content elements
-    // Inherited:    yes
-    // Percentages:    N/A
-    // Media:    visual
-    // Animatable:    yes
-    // Computed value:    "none", system paint, specified <color> value
-    // or absolute IRI
-    gradient = STROKE_GRADIENT.get(m);
-    if (gradient != null) {
-      String id;
-      if (gradientToIDMap.containsKey(gradient)) {
-        id = gradientToIDMap.get(gradient);
-      } else {
-        Element gradientElem;
-        if (gradient instanceof LinearGradient) {
-          LinearGradient lg = (LinearGradient) gradient;
-          gradientElem = createLinearGradient(
-              document,
-              lg.getX1(),
-              lg.getY1(),
-              lg.getX2(),
-              lg.getY2(),
-              lg.getStopOffsets(),
-              lg.getStopColors(),
-              lg.getStopOpacities(),
-              lg.isRelativeToFigureBounds(),
-              lg.getTransform());
-        } else /*if (gradient instanceof RadialGradient)*/ {
-          RadialGradient rg = (RadialGradient) gradient;
-          gradientElem = createRadialGradient(
-              document,
-              rg.getCX(),
-              rg.getCY(),
-              rg.getFX(),
-              rg.getFY(),
-              rg.getR(),
-              rg.getStopOffsets(),
-              rg.getStopColors(),
-              rg.getStopOpacities(),
-              rg.isRelativeToFigureBounds(),
-              rg.getTransform());
-        }
-        id = getId(gradientElem);
-        gradientElem.setAttributeNS("xml", "id", id);
-        defs.appendChild(gradientElem);
-        gradientToIDMap.put(gradient, id);
-      }
-      writeAttribute(elem, "stroke", "url(#" + id + ")", "none");
-    } else {
-      writeAttribute(elem, "stroke", toColor(STROKE_COLOR.get(m)), "none");
-    }
-    // 'stroke-dasharray'
-    // Value:    none | <dasharray> | inherit
-    // Initial:    none
-    // Applies to:    shapes and text content elements
-    // Inherited:    yes
-    // Percentages:    N/A
-    // Media:    visual
-    // Animatable:    yes (non-additive)
-    // Computed value:    Specified value, except inherit
-    double[] dashes = STROKE_DASHES.get(m);
-    if (dashes != null) {
-      StringBuilder buf = new StringBuilder();
-      for (int i = 0; i < dashes.length; i++) {
-        if (i != 0) {
-          buf.append(',');
-        }
-        buf.append(toNumber(dashes[i]));
-      }
-      writeAttribute(elem, "stroke-dasharray", buf.toString(), null);
-    }
-    // 'stroke-dashoffset'
-    // Value:   <length> | inherit
-    // Initial:    0
-    // Applies to:    shapes and text content elements
-    // Inherited:    yes
-    // Percentages:    N/A
-    // Media:    visual
-    // Animatable:    yes
-    // Computed value:    Specified value, except inherit
-    writeAttribute(elem, "stroke-dashoffset", STROKE_DASH_PHASE.get(m), 0d);
-    // 'stroke-linecap'
-    // Value:    butt | round | square | inherit
-    // Initial:    butt
-    // Applies to:    shapes and text content elements
-    // Inherited:    yes
-    // Percentages:    N/A
-    // Media:    visual
-    // Animatable:    yes
-    // Computed value:    Specified value, except inherit
-    writeAttribute(elem, "stroke-linecap", STROKE_LINECAP.get(STROKE_CAP.get(m)), "butt");
-    // 'stroke-linejoin'
-    // Value:    miter | round | bevel | inherit
-    // Initial:    miter
-    // Applies to:    shapes and text content elements
-    // Inherited:    yes
-    // Percentages:    N/A
-    // Media:    visual
-    // Animatable:    yes
-    // Computed value:    Specified value, except inherit
-    writeAttribute(elem, "stroke-linejoin", STROKE_LINEJOIN.get(STROKE_JOIN.get(m)), "miter");
-    // 'stroke-miterlimit'
-    // Value:    <miterlimit> | inherit
-    // Initial:    4
-    // Applies to:    shapes and text content elements
-    // Inherited:    yes
-    // Percentages:    N/A
-    // Media:    visual
-    // Animatable:    yes
-    // Computed value:    Specified value, except inherit
-    writeAttribute(elem, "stroke-miterlimit", STROKE_MITER_LIMIT.get(m), 4d);
-    // 'stroke-opacity'
-    // Value:    <opacity-value> | inherit
-    // Initial:    1
-    // Applies to:    shapes and text content elements
-    // Inherited:    yes
-    // Percentages:    N/A
-    // Media:    visual
-    // Animatable:    yes
-    // Computed value:    Specified value, except inherit
-    writeAttribute(elem, "stroke-opacity", STROKE_OPACITY.get(m), 1d);
-    // 'stroke-width'
-    // Value:   <length> | inherit
-    // Initial:    1
-    // Applies to:    shapes and text content elements
-    // Inherited:    yes
-    // Percentages:    N/A
-    // Media:    visual
-    // Animatable:    yes
-    // Computed value:    Specified value, except inherit
-    writeAttribute(elem, "stroke-width", STROKE_WIDTH.get(m), 1d);
+    attributeWriter.writeShapeAttributes(elem, m);
   }
 
   /* Writes the opacity attribute.
    */
   protected void writeOpacityAttribute(Element elem, Map<AttributeKey<?>, Object> m)
       throws IOException {
-    // 'opacity'
-    // Value:   <opacity-value> | inherit
-    // Initial:   1
-    // Applies to:    'image' element
-    // Inherited:   no
-    // Percentages:   N/A
-    // Media:   visual
-    // Animatable:   yes
-    // Computed value:    Specified value, except inherit
-    // <opacity-value>
-    // The uniform opacity setting must be applied across an entire object.
-    // Any values outside the range 0.0 (fully transparent) to 1.0
-    // (fully opaque) shall be clamped to this range.
-    // (See Clamping values which are restricted to a particular range.)
-    writeAttribute(elem, "opacity", OPACITY.get(m), 1d);
+    attributeWriter.writeOpacityAttribute(elem, m);
   }
 
   /* Writes the transform attribute as specified in
@@ -862,10 +608,7 @@ public class SVGOutputFormat implements OutputFormat {
    */
   protected void writeTransformAttribute(Element elem, Map<AttributeKey<?>, Object> a)
       throws IOException {
-    AffineTransform t = TRANSFORM.get(a);
-    if (t != null) {
-      writeAttribute(elem, "transform", toTransform(t), "none");
-    }
+    attributeWriter.writeTransformAttribute(elem, a);
   }
 
   /* Writes font attributes as listed in
@@ -873,109 +616,14 @@ public class SVGOutputFormat implements OutputFormat {
    */
   private void writeFontAttributes(Element elem, Map<AttributeKey<?>, Object> a)
       throws IOException {
-    String value;
-    double doubleValue;
-    // 'font-family'
-    // Value:   [[ <family-name> |
-    // <generic-family> ],]* [<family-name> |
-    // <generic-family>] | inherit
-    // Initial:   depends on user agent
-    // Applies to:   text content elements
-    // Inherited:   yes
-    // Percentages:   N/A
-    // Media:   visual
-    // Animatable:   yes
-    // Computed value:    Specified value, except inherit
-    writeAttribute(elem, "font-family", FONT_FACE.get(a).getFontName(), "Dialog");
-    // 'font-getChildCount'
-    // Value:   <absolute-getChildCount> | <relative-getChildCount> |
-    // <length> | inherit
-    // Initial:   medium
-    // Applies to:   text content elements
-    // Inherited:   yes, the computed value is inherited
-    // Percentages:   N/A
-    // Media:   visual
-    // Animatable:   yes
-    // Computed value:    Absolute length
-    writeAttribute(elem, "font-size", FONT_SIZE.get(a), 0d);
-    // 'font-style'
-    // Value:   normal | italic | oblique | inherit
-    // Initial:   normal
-    // Applies to:   text content elements
-    // Inherited:   yes
-    // Percentages:   N/A
-    // Media:   visual
-    // Animatable:   yes
-    // Computed value:    Specified value, except inherit
-    writeAttribute(elem, "font-style", (FONT_ITALIC.get(a)) ? "italic" : "normal", "normal");
-    // 'font-variant'
-    // Value:   normal | small-caps | inherit
-    // Initial:   normal
-    // Applies to:   text content elements
-    // Inherited:   yes
-    // Percentages:   N/A
-    // Media:   visual
-    // Animatable:   no
-    // Computed value:    Specified value, except inherit
-    // XXX - Implement me
-    writeAttribute(elem, "font-variant", "normal", "normal");
-    // 'font-weight'
-    // Value:   normal | bold | bolder | lighter | 100 | 200 | 300
-    // | 400 | 500 | 600 | 700 | 800 | 900 | inherit
-    // Initial:   normal
-    // Applies to:   text content elements
-    // Inherited:   yes
-    // Percentages:   N/A
-    // Media:   visual
-    // Animatable:   yes
-    // Computed value:    one of the legal numeric values, non-numeric
-    // values shall be converted to numeric values according to the rules
-    // defined below.
-    writeAttribute(elem, "font-weight", (FONT_BOLD.get(a)) ? "bold" : "normal", "normal");
-    // Note: text-decoration is an SVG 1.1 feature
-    // 'text-decoration'
-    // Value:   none | [ underline || overline || line-through || blink ] | inherit
-    // Initial:   none
-    // Applies to:   text content elements
-    // Inherited:   no (see prose)
-    // Percentages:   N/A
-    // Media:   visual
-    // Animatable:   yes
-    writeAttribute(elem, "text-decoration", (FONT_UNDERLINE.get(a)) ? "underline" : "none", "none");
+    attributeWriter.writeFontAttributes(elem, a);
   }
 
   /* Writes viewport attributes.
    */
   private void writeViewportAttributes(Element elem, Map<AttributeKey<?>, Object> a)
       throws IOException {
-    Object value;
-    Double doubleValue;
-    if (VIEWPORT_WIDTH.get(a) != null && VIEWPORT_HEIGHT.get(a) != null) {
-      // width of the viewport
-      writeAttribute(elem, "width", toNumber(VIEWPORT_WIDTH.get(a)), null);
-      // height of the viewport
-      writeAttribute(elem, "height", toNumber(VIEWPORT_HEIGHT.get(a)), null);
-    }
-    // 'viewport-fill'
-    // Value:  "none" | <color> | inherit
-    // Initial:  none
-    // Applies to: viewport-creating elements
-    // Inherited:  no
-    // Percentages:  N/A
-    // Media:  visual
-    // Animatable:  yes
-    // Computed value:    "none" or specified <color> value, except inherit
-    writeAttribute(elem, "viewport-fill", toColor(VIEWPORT_FILL.get(a)), "none");
-    // 'viewport-fill-opacity'
-    // Value: <opacity-value> | inherit
-    // Initial:  1.0
-    // Applies to: viewport-creating elements
-    // Inherited:  no
-    // Percentages:  N/A
-    // Media:  visual
-    // Animatable:  yes
-    // Computed value:    Specified value, except inherit
-    writeAttribute(elem, "viewport-fill-opacity", VIEWPORT_FILL_OPACITY.get(a), 1.0);
+    attributeWriter.writeViewportAttributes(elem, a);
   }
 
   protected void writeAttribute(Element elem, String name, String value, String defaultValue) {
